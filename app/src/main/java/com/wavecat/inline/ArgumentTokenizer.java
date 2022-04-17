@@ -11,10 +11,6 @@ public class ArgumentTokenizer {
     private static final int DOUBLE_QUOTE_STATE = 3;
 
     public static List<String> tokenize(String arguments) {
-        return tokenize(arguments, false);
-    }
-
-    public static List<String> tokenize(String arguments, boolean stringify) {
 
         LinkedList<String> argList = new LinkedList<>();
         StringBuilder currArg = new StringBuilder();
@@ -87,40 +83,6 @@ public class ArgumentTokenizer {
             argList.add(currArg.toString());
         }
 
-        if (stringify) {
-            for (int i = 0; i < argList.size(); i++) {
-                argList.set(i, "\"" + _escapeQuotesAndBackslashes(argList.get(i)) + "\"");
-            }
-        }
-
         return argList;
-    }
-
-    protected static String _escapeQuotesAndBackslashes(String s) {
-        final StringBuilder buf = new StringBuilder(s);
-
-        for (int i = s.length() - 1; i >= 0; i--) {
-            char c = s.charAt(i);
-            if ((c == '\\') || (c == '"')) {
-                buf.insert(i, '\\');
-            } else if (c == '\n') {
-                buf.deleteCharAt(i);
-                buf.insert(i, "\\n");
-            } else if (c == '\t') {
-                buf.deleteCharAt(i);
-                buf.insert(i, "\\t");
-            } else if (c == '\r') {
-                buf.deleteCharAt(i);
-                buf.insert(i, "\\r");
-            } else if (c == '\b') {
-                buf.deleteCharAt(i);
-                buf.insert(i, "\\b");
-            } else if (c == '\f') {
-                buf.deleteCharAt(i);
-                buf.insert(i, "\\f");
-            }
-        }
-
-        return buf.toString();
     }
 }
