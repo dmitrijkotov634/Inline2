@@ -1,0 +1,34 @@
+local function checkArg(query)
+    if query:getArgs() == "" then
+        inline:toast("Empty value")
+        query:answer("")
+
+        return false
+    end
+    return true
+end
+
+local function eval(_, query)
+    if checkArg(query) then
+        local chunk = load("return " .. query:getArgs())
+
+        if chunk ~= nil then
+            query:answer(tostring(chunk()))
+        end
+    end
+end
+
+local function exec(_, query)
+    if checkArg(query) then
+        local chunk = load(query:getArgs())
+
+        if chunk ~= nil then
+            query:answer(tostring(chunk()))
+        end
+    end
+end
+
+return function(module)
+    module:registerCommand("eval", eval)
+    module:registerCommand("exec", exec)
+end
