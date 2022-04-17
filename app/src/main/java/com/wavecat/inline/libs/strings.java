@@ -33,7 +33,7 @@ public class strings extends TwoArgFunction {
         }
 
         public static Object[] parseArgs(String string) {
-            return ArgumentTokenizer.tokenize(string, true).toArray();
+            return ArgumentTokenizer.tokenize(string).toArray();
         }
     }
 
