@@ -6,8 +6,6 @@ import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
-import java.util.regex.Pattern;
-
 @SuppressWarnings("unused")
 public class strings extends TwoArgFunction {
 
@@ -18,10 +16,6 @@ public class strings extends TwoArgFunction {
 
         public static String[] split(String string, String regex, int limit) {
             return string.split(regex, limit);
-        }
-
-        public static String replace(String string, String old, String replacement) {
-            return string.replaceAll(Pattern.quote(old), replacement);
         }
 
         public static int length(String string) {
@@ -39,6 +33,11 @@ public class strings extends TwoArgFunction {
 
     @Override
     public LuaValue call(LuaValue name, LuaValue env) {
-        return CoerceJavaToLua.coerce(StringsLib.class);
+        LuaValue lib = CoerceJavaToLua.coerce(StringsLib.class);
+
+        env.set("strings", lib);
+        env.get("package").get("loaded").set("strings", lib);
+
+        return lib;
     }
 }

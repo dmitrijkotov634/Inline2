@@ -1,4 +1,4 @@
-local preferences = inline:getSharedPreferences("notes")
+local preferences = inline:getSharedPreferences "notes"
 local list = preferences:getStringSet("notes", luajava.newInstance("java.util.HashSet"))
 
 local function getNoteName(query)
@@ -6,7 +6,7 @@ local function getNoteName(query)
 end
 
 local function save(_, query)
-    query:answer("")
+    query:answer()
 
     local arg = getNoteName(query)
     local editor = preferences:edit()

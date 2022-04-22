@@ -1,8 +1,7 @@
 local function checkArg(query)
     if query:getArgs() == "" then
-        inline:toast("Empty value")
-        query:answer("")
-
+        inline:toast "Empty value"
+        query:answer()
         return false
     end
     return true
@@ -23,7 +22,11 @@ local function exec(_, query)
         local chunk = load(query:getArgs())
 
         if chunk ~= nil then
-            query:answer(tostring(chunk()))
+            local result = chunk()
+
+            if result ~= nil then
+                query:answer(tostring(result))
+            end
         end
     end
 end

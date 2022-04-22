@@ -1,10 +1,11 @@
-local strings = require("com.wavecat.inline.libs.strings")
+require "com.wavecat.inline.libs.strings"
+
 local actions = {}
 
 local function checkArgs(args, query, count)
     if #args < count then
-        inline:toast("Not enough arguments")
-        query:answer("")
+        inline:toast "Not enough arguments"
+        query:answer()
         return false
     end
     return true
@@ -20,7 +21,7 @@ local function replace(input, query)
 end
 
 local function find(input, query)
-    query:answer("")
+    query:answer()
 
     if query:getArgs() ~= "" then
         local index = query:getText():find(strings:escape(query:getArgs())) - 1
@@ -38,7 +39,7 @@ end
 
 local function undo(input, query)
     if #actions == 0 then
-        query:answer("")
+        query:answer()
         return
     end
 
