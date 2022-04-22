@@ -19,6 +19,7 @@ import androidx.preference.PreferenceManager;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.ResourceFinder;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
@@ -34,11 +35,13 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class InlineService extends AccessibilityService {
+public class InlineService extends AccessibilityService implements ResourceFinder {
     private static InlineService instance;
 
     private Globals environment;
+
     private SharedPreferences preferences;
+    private SharedPreferences aliases;
 
     private final HashMap<String, LuaValue> commands = new HashMap<>();
     private final HashMap<Module, LuaValue> watchers = new HashMap<>();
@@ -56,6 +59,7 @@ public class InlineService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        aliases = getSharedPreferences("aliases", MODE_PRIVATE);
 
         createEnvironment();
 
@@ -79,6 +83,8 @@ public class InlineService extends AccessibilityService {
 
     public void createEnvironment() {
         environment = JsePlatform.standardGlobals();
+        environment.finder = this;
+
         environment.set("inline", CoerceJavaToLua.coerce(new BaseLib(this)));
 
         commands.clear();
@@ -118,6 +124,15 @@ public class InlineService extends AccessibilityService {
         e.printStackTrace();
     }
 
+    @Override
+    public InputStream findResource(String filename) {
+        try {
+            return getAssets().open(filename);
+        } catch (java.io.IOException ioe) {
+            return null;
+        }
+    }
+
     @SuppressWarnings("unused")
     private class Module {
 
@@ -140,9 +155,6 @@ public class InlineService extends AccessibilityService {
         }
 
         public LuaValue getCommand(String name) {
-            if (!commands.containsKey(name))
-                return LuaValue.NIL;
-
             return commands.get(name);
         }
 
@@ -157,15 +169,10 @@ public class InlineService extends AccessibilityService {
     }
 
     private void applyModule(LuaValue value, String filepath) {
-        try {
-            LuaValue result = value.call();
+        LuaValue result = value.call();
 
-            if (result.isfunction())
-                result.call(CoerceJavaToLua.coerce(new Module(filepath)));
-
-        } catch (LuaError e) {
-            e.printStackTrace();
-        }
+        if (result.isfunction())
+            result.call(CoerceJavaToLua.coerce(new Module(filepath)));
     }
 
     private void loadModules() throws IOException {
@@ -227,7 +234,7 @@ public class InlineService extends AccessibilityService {
         String text = accessibilityNodeInfo.getText().toString();
 
         while (matcher.find()) {
-            LuaValue command = commands.get(matcher.group(2));
+            LuaValue command = commands.get(aliases.getString(matcher.group(2), matcher.group(2)));
 
             if (command != null) {
                 Query query = new Query(accessibilityNodeInfo, text, matcher.group(), matcher.group(3));

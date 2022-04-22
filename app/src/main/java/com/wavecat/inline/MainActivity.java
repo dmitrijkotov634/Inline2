@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
         binding.requestPermission.setOnClickListener(view -> {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 startActivity(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                        Uri.fromParts("package", this.getPackageName(), null)));
+                        Uri.fromParts("package", getPackageName(), null)));
             } else {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
                         Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
@@ -41,7 +41,9 @@ public class MainActivity extends AppCompatActivity {
         binding.reloadService.setOnClickListener(view -> {
             InlineService service = InlineService.getInstance();
 
-            if (service != null)
+            if (service == null)
+                binding.openAccessibilitySettings.callOnClick();
+            else
                 service.createEnvironment();
         });
     }

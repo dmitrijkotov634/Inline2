@@ -2,8 +2,6 @@ package com.wavecat.inline;
 
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import java.util.regex.Pattern;
-
 @SuppressWarnings("unused")
 public class Query {
 
@@ -39,11 +37,14 @@ public class Query {
     }
 
     public void answer(String reply) {
-        text = currentText.replaceFirst(Pattern.quote(match), reply);
+        if (reply == null)
+            reply = "";
+
+        text = currentText.replace(match, reply);
+
+        int position = accessibilityNodeInfo.getTextSelectionStart() - match.length() + reply.length();
 
         BaseLib.setText(accessibilityNodeInfo, text);
-        BaseLib.setSelection(accessibilityNodeInfo,
-                accessibilityNodeInfo.getTextSelectionStart(),
-                accessibilityNodeInfo.getTextSelectionEnd());
+        BaseLib.setSelection(accessibilityNodeInfo, position, position);
     }
 }
