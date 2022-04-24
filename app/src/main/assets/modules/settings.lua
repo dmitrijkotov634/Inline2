@@ -5,7 +5,7 @@ local aliases = inline:getSharedPreferences "aliases"
 local dispatcher
 
 local function addalias(_, query)
-    local args = strings:split(query:getArgs(), " ", 2);
+    local args = strings.split(query:getArgs(), " ", 2);
 
     if #args ~= 2 then
         inline:toast "Invalid arguments"

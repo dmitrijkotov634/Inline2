@@ -3,41 +3,63 @@ package com.wavecat.inline.libs;
 import com.wavecat.inline.ArgumentTokenizer;
 
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.lib.OneArgFunction;
+import org.luaj.vm2.lib.ThreeArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 @SuppressWarnings("unused")
 public class strings extends TwoArgFunction {
 
-    private static class StringsLib {
-        public static String[] split(String string, String regex) {
-            return string.split(regex);
-        }
+    @Override
+    public LuaValue call(LuaValue name, LuaValue env) {
+        LuaValue library = tableOf();
+        library.set("split", new split());
+        library.set("substring", new substring());
+        library.set("length", new length());
+        library.set("escape", new escape());
+        library.set("parseArgs", new parseArgs());
 
-        public static String[] split(String string, String regex, int limit) {
-            return string.split(regex, limit);
-        }
+        env.set("strings", library);
+        env.get("package").get("loaded").set("strings", library);
 
-        public static int length(String string) {
-            return string.length();
-        }
+        return library;
+    }
 
-        public static String escape(String string) {
-            return string.replaceAll("[$*+?.()\\[\\]%-]", "%$0");
-        }
-
-        public static Object[] parseArgs(String string) {
-            return ArgumentTokenizer.tokenize(string).toArray();
+    static class split extends ThreeArgFunction {
+        public LuaValue call(LuaValue string, LuaValue regex, LuaValue limit) {
+            if (limit.isnil())
+                return CoerceJavaToLua.coerce(string.checkjstring().split(regex.checkjstring()));
+            else
+                return CoerceJavaToLua.coerce(string.checkjstring().split(regex.checkjstring(), limit.checkint()));
         }
     }
 
-    @Override
-    public LuaValue call(LuaValue name, LuaValue env) {
-        LuaValue lib = CoerceJavaToLua.coerce(StringsLib.class);
+    static class substring extends ThreeArgFunction {
+        @Override
+        public LuaValue call(LuaValue string, LuaValue start, LuaValue end) {
+            return valueOf(string.checkjstring().substring(start.checkint(), end.checkint()));
+        }
+    }
 
-        env.set("strings", lib);
-        env.get("package").get("loaded").set("strings", lib);
+    static class length extends OneArgFunction {
+        @Override
+        public LuaValue call(LuaValue string) {
+            return valueOf(string.checkjstring().length());
+        }
+    }
 
-        return lib;
+    static class escape extends OneArgFunction {
+        @Override
+        public LuaValue call(LuaValue string) {
+            return valueOf(string.checkjstring().replaceAll("[$*+?.()\\[\\]%-]", "%$0"));
+        }
+    }
+
+    static class parseArgs extends OneArgFunction {
+        @Override
+        public LuaValue call(LuaValue string) {
+            return CoerceJavaToLua.coerce(ArgumentTokenizer.tokenize(string.checkjstring()).toArray());
+        }
     }
 }

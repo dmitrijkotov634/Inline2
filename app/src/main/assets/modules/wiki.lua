@@ -9,24 +9,15 @@ local function wiki(_, query)
         return
     end
 
-    local request = http:newRequestBuilder()
-                        :url(http:buildUrl("https://" .. preferences:getString("wiki", "en") .. ".wikipedia.org/w/api.php", {
-        format = "json",
-        action = "query",
-        prop = "extracts",
-        exintro = "",
-        explaintext = "",
-        redirects = 1,
-        titles = query:getArgs()
-    }))
+    local request = http.newRequestBuilder()
+                        :url("https://" .. preferences:getString("wiki", "en") .. ".wikipedia.org/api/rest_v1/page/summary/" .. query:getArgs())
                         :get()
                         :build()
 
-    http:call(request, function(_, response)
+    http.call(request, function(_, response)
         local json = luajava.newInstance("org.json.JSONObject", response:body():string())
-        local pages = json:getJSONObject("query"):getJSONObject("pages")
 
-        query:answer(pages:getJSONObject(pages:names():optString(0)):optString("extract"))
+        query:answer(json:optString("extract"))
     end)
 end
 
