@@ -34,6 +34,6 @@ local function wikilang(_, query)
 end
 
 return function(module)
-    module:registerCommand("wiki", wiki)
-    module:registerCommand("wikilang", wikilang)
+    module:registerCommand("wiki", wiki, "Gives a short description from wikipedia")
+    module:registerCommand("wikilang", wikilang, "Sets the wikipedia language")
 end

@@ -74,9 +74,9 @@ local function invert(input, query)
 end
 
 return function(module)
-    module:registerCommand("replace", replace)
-    module:registerCommand("undo", undo)
-    module:registerCommand("find", find)
-    module:registerCommand("repeat", repeat_)
-    module:registerCommand("invert", invert)
+    module:registerCommand("replace", replace, "Changes text in which all occurrences of a substring are replaced by another substring")
+    module:registerCommand("undo", undo, "Returns text to the old state")
+    module:registerCommand("find", find, "Selects the found fragment of text")
+    module:registerCommand("repeat", repeat_, "Returns a string repeated the desired number of times")
+    module:registerCommand("invert", invert, "Changes some characters to similar ones")
 end

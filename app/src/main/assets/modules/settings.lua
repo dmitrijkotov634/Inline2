@@ -31,8 +31,8 @@ local function delalias(_, query)
 end
 
 return function(module)
-    module:registerCommand("addalias", addalias)
-    module:registerCommand("delalias", delalias)
+    module:registerCommand("addalias", addalias, "Set an alias for a command")
+    module:registerCommand("delalias", delalias, "Remove an alias for a command")
 
     dispatcher = module
 end
