@@ -151,7 +151,7 @@ public class InlineService extends AccessibilityService implements ResourceFinde
         }
 
         public void registerCommand(String name, LuaValue function) {
-            commands.put(name, new Command(this, function.checkfunction(), ""));
+            registerCommand(name, function, "");
         }
 
         public void unregisterCommand(String name) {
