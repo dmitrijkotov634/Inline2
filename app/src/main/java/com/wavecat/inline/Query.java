@@ -30,10 +30,7 @@ public class Query {
     }
 
     public String getArgs() {
-        if (args == null)
-            return "";
-
-        return args;
+        return args == null ? "" : args;
     }
 
     public void answer(String reply) {

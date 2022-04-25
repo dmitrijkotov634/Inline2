@@ -43,7 +43,7 @@ public class InlineService extends AccessibilityService implements ResourceFinde
     private SharedPreferences preferences;
     private SharedPreferences aliases;
 
-    private final HashMap<String, LuaValue> commands = new HashMap<>();
+    private final HashMap<String, Command> commands = new HashMap<>();
     private final HashMap<Module, LuaValue> watchers = new HashMap<>();
 
     private final static String PATH = "path";
@@ -146,16 +146,24 @@ public class InlineService extends AccessibilityService implements ResourceFinde
             return filepath;
         }
 
-        public void registerCommand(String name, LuaValue value) {
-            commands.put(name, value.checkfunction());
+        public void registerCommand(String name, LuaValue function, String description) {
+            commands.put(name, new Command(this, function.checkfunction(), description));
+        }
+
+        public void registerCommand(String name, LuaValue function) {
+            commands.put(name, new Command(this, function.checkfunction(), ""));
         }
 
         public void unregisterCommand(String name) {
             commands.remove(name);
         }
 
-        public LuaValue getCommand(String name) {
+        public Command getCommand(String name) {
             return commands.get(name);
+        }
+
+        public HashMap<String, Command> getCommands() {
+            return commands;
         }
 
         public void setWatcher(LuaValue value) {
@@ -165,6 +173,32 @@ public class InlineService extends AccessibilityService implements ResourceFinde
             }
 
             watchers.put(this, value.checkfunction());
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static class Command {
+
+        private final LuaValue function;
+        private final String description;
+        private final Module module;
+
+        public Command(Module module, LuaValue function, String description) {
+            this.module = module;
+            this.function = function;
+            this.description = description;
+        }
+
+        public Module getModule() {
+            return module;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public LuaValue getFunction() {
+            return function;
         }
     }
 
@@ -183,7 +217,7 @@ public class InlineService extends AccessibilityService implements ResourceFinde
             byte[] buffer = new byte[stream.available()];
             stream.read(buffer);
 
-            applyModule(environment.load(new String(buffer)), null);
+            applyModule(environment.load(new String(buffer), fileName), fileName);
         }
 
         Set<String> paths = preferences.getStringSet(PATH, new HashSet<>(
@@ -234,13 +268,13 @@ public class InlineService extends AccessibilityService implements ResourceFinde
         String text = accessibilityNodeInfo.getText().toString();
 
         while (matcher.find()) {
-            LuaValue command = commands.get(aliases.getString(matcher.group(2), matcher.group(2)));
+            Command command = commands.get(aliases.getString(matcher.group(2), matcher.group(2)));
 
             if (command != null) {
                 Query query = new Query(accessibilityNodeInfo, text, matcher.group(), matcher.group(3));
 
                 try {
-                    command.call(
+                    command.getFunction().call(
                             CoerceJavaToLua.coerce(accessibilityNodeInfo),
                             CoerceJavaToLua.coerce(query));
                 } catch (LuaError e) {
