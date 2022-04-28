@@ -32,6 +32,7 @@ local function exec(_, query)
 end
 
 return function(module)
+    module:setCategory "Executor"
     module:registerCommand("eval", eval, "Evaluates lua code")
     module:registerCommand("exec", exec, "Executes lua code")
 end

@@ -19,7 +19,6 @@ import androidx.preference.PreferenceManager;
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.lib.ResourceFinder;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
@@ -35,7 +34,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class InlineService extends AccessibilityService implements ResourceFinder {
+public class InlineService extends AccessibilityService {
     private static InlineService instance;
 
     private Globals environment;
@@ -56,6 +55,8 @@ public class InlineService extends AccessibilityService implements ResourceFinde
 
     private Pattern pattern;
 
+    private String previousText;
+
     @Override
     protected void onServiceConnected() {
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
@@ -67,8 +68,7 @@ public class InlineService extends AccessibilityService implements ResourceFinde
 
         AccessibilityServiceInfo info = new AccessibilityServiceInfo();
 
-        info.flags = AccessibilityServiceInfo.DEFAULT |
-                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
+        info.flags = AccessibilityServiceInfo.DEFAULT;
 
         info.eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED;
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_ALL_MASK;
@@ -83,7 +83,6 @@ public class InlineService extends AccessibilityService implements ResourceFinde
 
     public void createEnvironment() {
         environment = JsePlatform.standardGlobals();
-        environment.finder = this;
 
         environment.set("inline", CoerceJavaToLua.coerce(new BaseLib(this)));
 
@@ -124,19 +123,11 @@ public class InlineService extends AccessibilityService implements ResourceFinde
         e.printStackTrace();
     }
 
-    @Override
-    public InputStream findResource(String filename) {
-        try {
-            return getAssets().open(filename);
-        } catch (java.io.IOException ioe) {
-            return null;
-        }
-    }
-
     @SuppressWarnings("unused")
     private class Module {
 
         private final String filepath;
+        private String category;
 
         public Module(String filepath) {
             this.filepath = filepath;
@@ -146,8 +137,12 @@ public class InlineService extends AccessibilityService implements ResourceFinde
             return filepath;
         }
 
+        public void setCategory(String category) {
+            this.category = category;
+        }
+
         public void registerCommand(String name, LuaValue function, String description) {
-            commands.put(name, new Command(this, function.checkfunction(), description));
+            commands.put(name, new Command(category, function.checkfunction(), description));
         }
 
         public void registerCommand(String name, LuaValue function) {
@@ -158,11 +153,7 @@ public class InlineService extends AccessibilityService implements ResourceFinde
             commands.remove(name);
         }
 
-        public Command getCommand(String name) {
-            return commands.get(name);
-        }
-
-        public HashMap<String, Command> getCommands() {
+        public HashMap<String, Command> getAllCommands() {
             return commands;
         }
 
@@ -179,45 +170,47 @@ public class InlineService extends AccessibilityService implements ResourceFinde
     @SuppressWarnings("unused")
     private static class Command {
 
-        private final LuaValue function;
+        private final String category;
+        private final LuaValue callable;
         private final String description;
-        private final Module module;
 
-        public Command(Module module, LuaValue function, String description) {
-            this.module = module;
-            this.function = function;
+        public Command(String category, LuaValue callable, String description) {
+            this.category = category;
+            this.callable = callable;
             this.description = description;
         }
 
-        public Module getModule() {
-            return module;
+        public String getCategory() {
+            return category;
         }
 
         public String getDescription() {
             return description;
         }
 
-        public LuaValue getFunction() {
-            return function;
+        public LuaValue getCallable() {
+            return callable;
         }
     }
 
-    private void applyModule(LuaValue value, String filepath) {
+    private void applyModule(LuaValue value, String filePath) {
         LuaValue result = value.call();
 
         if (result.isfunction())
-            result.call(CoerceJavaToLua.coerce(new Module(filepath)));
+            result.call(CoerceJavaToLua.coerce(new Module(filePath)));
     }
 
     private void loadModules() throws IOException {
         AssetManager assets = getResources().getAssets();
 
         for (String fileName : assets.list(DEFAULT_ASSETS_PATH)) {
-            InputStream stream = assets.open(DEFAULT_ASSETS_PATH + fileName);
+            String path = DEFAULT_ASSETS_PATH + fileName;
+
+            InputStream stream = assets.open(path);
             byte[] buffer = new byte[stream.available()];
             stream.read(buffer);
 
-            applyModule(environment.load(new String(buffer), fileName), fileName);
+            applyModule(environment.load(new String(buffer), path), path);
         }
 
         Set<String> paths = preferences.getStringSet(PATH, new HashSet<>(
@@ -250,6 +243,13 @@ public class InlineService extends AccessibilityService implements ResourceFinde
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
         AccessibilityNodeInfo accessibilityNodeInfo = accessibilityEvent.getSource();
 
+        String text = accessibilityNodeInfo.getText() == null ? "" : accessibilityNodeInfo.getText().toString();
+
+        if (text.equals(previousText))
+            return;
+
+        previousText = text;
+
         for (LuaValue watcher : watchers.values()) {
             try {
                 watcher.call(CoerceJavaToLua.coerce(accessibilityNodeInfo));
@@ -258,14 +258,10 @@ public class InlineService extends AccessibilityService implements ResourceFinde
             }
         }
 
-        if (accessibilityNodeInfo.getText() == null)
-            return;
-
         if (pattern == null)
             pattern = Pattern.compile(preferences.getString(PATTERN, "(\\{([a-zA-Z]+)(?:\\s([\\S\\s]+?)\\}*)?\\}\\$)+"), Pattern.DOTALL);
 
-        Matcher matcher = pattern.matcher(accessibilityNodeInfo.getText());
-        String text = accessibilityNodeInfo.getText().toString();
+        Matcher matcher = pattern.matcher(text);
 
         while (matcher.find()) {
             Command command = commands.get(aliases.getString(matcher.group(2), matcher.group(2)));
@@ -274,7 +270,7 @@ public class InlineService extends AccessibilityService implements ResourceFinde
                 Query query = new Query(accessibilityNodeInfo, text, matcher.group(), matcher.group(3));
 
                 try {
-                    command.getFunction().call(
+                    command.getCallable().call(
                             CoerceJavaToLua.coerce(accessibilityNodeInfo),
                             CoerceJavaToLua.coerce(query));
                 } catch (LuaError e) {

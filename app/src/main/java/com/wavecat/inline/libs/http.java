@@ -27,6 +27,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 @SuppressWarnings("unused")
 public class http extends TwoArgFunction {
@@ -40,7 +41,7 @@ public class http extends TwoArgFunction {
         library.set("buildUrl", new buildUrl());
         library.set("buildBody", new buildBody());
         library.set("buildHeaders", new buildHeaders());
-        library.set("call", new call());
+        library.set("call", new call_());
 
         env.set("http", library);
         env.get("package").get("loaded").set("http", library);
@@ -114,7 +115,7 @@ public class http extends TwoArgFunction {
         }
     }
 
-    static class call extends ThreeArgFunction {
+    static class call_ extends ThreeArgFunction {
         @Override
         public LuaValue call(LuaValue request, LuaValue onResponse, LuaValue onFailure) {
             client.newCall((Request) CoerceLuaToJava.coerce(request, Request.class)).enqueue(new Callback() {
@@ -126,10 +127,15 @@ public class http extends TwoArgFunction {
                 }
 
                 @Override
-                public void onResponse(@NonNull Call call, @NonNull Response response) {
-                    if (!onResponse.isnil())
-                        new Handler(Looper.getMainLooper()).post(() ->
-                                onResponse.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(response)));
+                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                    if (!onResponse.isnil()) {
+                        ResponseBody responseBody = response.body();
+
+                        LuaValue bytes = valueOf(responseBody == null ? new byte[]{} : responseBody.bytes());
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            onResponse.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(response), bytes);
+                        });
+                    }
                 }
             });
 

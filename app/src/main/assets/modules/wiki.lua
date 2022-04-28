@@ -14,8 +14,8 @@ local function wiki(_, query)
                         :get()
                         :build()
 
-    http.call(request, function(_, response)
-        local json = luajava.newInstance("org.json.JSONObject", response:body():string())
+    http.call(request, function(_, _, string)
+        local json = luajava.newInstance("org.json.JSONObject", string)
 
         query:answer(json:optString("extract"))
     end)
@@ -34,6 +34,7 @@ local function wikilang(_, query)
 end
 
 return function(module)
+    module:setCategory "Wiki"
     module:registerCommand("wiki", wiki, "Gives a short description from wikipedia")
     module:registerCommand("wikilang", wikilang, "Sets the wikipedia language")
 end
