@@ -243,6 +243,9 @@ public class InlineService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
         AccessibilityNodeInfo accessibilityNodeInfo = accessibilityEvent.getSource();
 
+        if (accessibilityNodeInfo == null)
+            return;
+
         String text = accessibilityNodeInfo.getText() == null ? "" : accessibilityNodeInfo.getText().toString();
 
         if (text.equals(previousText))
