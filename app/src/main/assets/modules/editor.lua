@@ -74,6 +74,7 @@ local function invert(input, query)
 end
 
 return function(module)
+    module:setCategory "Editor"
     module:registerCommand("replace", replace, "Changes text in which all occurrences of a substring are replaced by another substring")
     module:registerCommand("undo", undo, "Returns text to the old state")
     module:registerCommand("find", find, "Selects the found fragment of text")

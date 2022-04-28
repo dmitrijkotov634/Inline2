@@ -50,6 +50,7 @@ local function notes(_, query)
 end
 
 return function(module)
+    module:setCategory "Notes"
     module:registerCommand("save", save, "Save a new note")
     module:registerCommand("note", note, "Gets the note specified")
     module:registerCommand("delnote", delnote, "Deletes a note, specified by note name")
