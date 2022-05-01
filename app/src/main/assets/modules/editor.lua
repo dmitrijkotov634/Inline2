@@ -32,7 +32,7 @@ local function replace(input, query)
     local args = strings.parseArgs(query:getArgs())
 
     if checkArgs(args, query, 2) then
-        actions[#actions + 1] = query:getText():gsub(strings.escape(query:getMatch()), "")
+        actions[#actions + 1] = query:replaceExpression("")
         inline:setText(input, actions[#actions]:gsub(strings.escape(args[1]), args[2]))
     end
 end
@@ -65,12 +65,17 @@ local function undo(input, query)
 end
 
 local function invert(input, query)
-    actions[#actions + 1] = query:getText():gsub(strings.escape(query:getMatch()), "")
+    actions[#actions + 1] = query:replaceExpression("")
 
     inline:setText(input, actions[#actions]:gsub(
             "[\1-\x7F\xC2-\xF4][\x80-\xBF]*",
             replacements
     ))
+end
+
+local function erase(input, query)
+    actions[#actions + 1] = query:replaceExpression("")
+    inline:setText(input, "")
 end
 
 return function(module)
@@ -80,4 +85,5 @@ return function(module)
     module:registerCommand("find", find, "Selects the found fragment of text")
     module:registerCommand("repeat", repeat_, "Returns a string repeated the desired number of times")
     module:registerCommand("invert", invert, "Changes some characters to similar ones")
+    module:registerCommand("erase", erase, "Erases all text")
 end

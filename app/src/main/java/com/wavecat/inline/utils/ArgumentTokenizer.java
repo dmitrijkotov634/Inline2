@@ -1,4 +1,4 @@
-package com.wavecat.inline;
+package com.wavecat.inline.utils;
 
 import java.util.LinkedList;
 import java.util.List;
