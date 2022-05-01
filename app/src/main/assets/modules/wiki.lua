@@ -9,7 +9,7 @@ local function wiki(_, query)
         return
     end
 
-    local request = http.newRequestBuilder()
+    local request = http.Request.Builder.new()
                         :url("https://" .. preferences:getString("wiki", "en") .. ".wikipedia.org/api/rest_v1/page/summary/" .. query:getArgs())
                         :get()
                         :build()

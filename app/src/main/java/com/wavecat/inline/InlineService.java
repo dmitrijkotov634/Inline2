@@ -43,7 +43,7 @@ public class InlineService extends AccessibilityService {
     private SharedPreferences aliases;
 
     private final HashMap<String, Command> commands = new HashMap<>();
-    private final HashMap<Module, LuaValue> watchers = new HashMap<>();
+    private final Set<LuaValue> watchers = new HashSet<>();
 
     private final static String PATH = "path";
     private final static String PATTERN = "pattern";
@@ -141,8 +141,8 @@ public class InlineService extends AccessibilityService {
             this.category = category;
         }
 
-        public void registerCommand(String name, LuaValue function, String description) {
-            commands.put(name, new Command(category, function.checkfunction(), description));
+        public void registerCommand(String name, LuaValue callable, String description) {
+            commands.put(name, new Command(category, callable.checkfunction(), description));
         }
 
         public void registerCommand(String name, LuaValue function) {
@@ -157,13 +157,16 @@ public class InlineService extends AccessibilityService {
             return commands;
         }
 
-        public void setWatcher(LuaValue value) {
-            if (value == null) {
-                watchers.remove(this);
-                return;
-            }
+        public Set<LuaValue> getAllWatchers() {
+            return watchers;
+        }
 
-            watchers.put(this, value.checkfunction());
+        public void registerWatcher(LuaValue callable) {
+            watchers.add(callable.checkfunction());
+        }
+
+        public void unregisterWatcher(LuaValue callable) {
+            watchers.remove(callable);
         }
     }
 
@@ -253,7 +256,7 @@ public class InlineService extends AccessibilityService {
 
         previousText = text;
 
-        for (LuaValue watcher : watchers.values()) {
+        for (LuaValue watcher : watchers) {
             try {
                 watcher.call(CoerceJavaToLua.coerce(accessibilityNodeInfo));
             } catch (LuaError e) {

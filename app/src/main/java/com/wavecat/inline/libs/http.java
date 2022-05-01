@@ -10,7 +10,6 @@ import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.ThreeArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
-import org.luaj.vm2.lib.ZeroArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.CoerceLuaToJava;
 
@@ -37,8 +36,10 @@ public class http extends TwoArgFunction {
     @Override
     public LuaValue call(LuaValue name, LuaValue env) {
         LuaValue library = tableOf();
-        library.set("newRequestBuilder", new newRequestBuilder());
+
+        library.set("Request", CoerceJavaToLua.coerce(Request.class));
         library.set("buildUrl", new buildUrl());
+        library.set("buildFormBody", new buildFormBody());
         library.set("buildBody", new buildBody());
         library.set("buildHeaders", new buildHeaders());
         library.set("call", new call_());
@@ -50,13 +51,6 @@ public class http extends TwoArgFunction {
             client = new OkHttpClient();
 
         return library;
-    }
-
-    static class newRequestBuilder extends ZeroArgFunction {
-        @Override
-        public LuaValue call() {
-            return CoerceJavaToLua.coerce(new Request.Builder());
-        }
     }
 
     static class buildUrl extends TwoArgFunction {
@@ -76,25 +70,28 @@ public class http extends TwoArgFunction {
         }
     }
 
+    static class buildFormBody extends OneArgFunction {
+        @Override
+        public LuaValue call(LuaValue data) {
+            FormBody.Builder builder = new FormBody.Builder();
+
+            LuaValue k = LuaValue.NIL;
+            while (true) {
+                Varargs n = data.next(k);
+                if ((k = n.arg1()).isnil())
+                    break;
+                builder.add(k.checkjstring(), n.arg(2).tojstring());
+            }
+
+            return CoerceJavaToLua.coerce(data);
+        }
+    }
+
     static class buildBody extends TwoArgFunction {
         @Override
-        public LuaValue call(LuaValue table, LuaValue mediaType) {
-            if (table.isstring()) {
-                return CoerceJavaToLua.coerce(
-                        RequestBody.create(table.checkjstring(), MediaType.parse(mediaType.checkjstring())));
-            } else {
-                FormBody.Builder builder = new FormBody.Builder();
-
-                LuaValue k = LuaValue.NIL;
-                while (true) {
-                    Varargs n = table.next(k);
-                    if ((k = n.arg1()).isnil())
-                        break;
-                    builder.add(k.checkjstring(), n.arg(2).tojstring());
-                }
-
-                return CoerceJavaToLua.coerce(table);
-            }
+        public LuaValue call(LuaValue data, LuaValue mediaType) {
+            return CoerceJavaToLua.coerce(
+                    RequestBody.create(data.checkjstring(), MediaType.parse(mediaType.checkjstring())));
         }
     }
 
@@ -132,9 +129,8 @@ public class http extends TwoArgFunction {
                         ResponseBody responseBody = response.body();
 
                         LuaValue bytes = valueOf(responseBody == null ? new byte[]{} : responseBody.bytes());
-                        new Handler(Looper.getMainLooper()).post(() -> {
-                            onResponse.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(response), bytes);
-                        });
+                        new Handler(Looper.getMainLooper()).post(() ->
+                                onResponse.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(response), bytes));
                     }
                 }
             });

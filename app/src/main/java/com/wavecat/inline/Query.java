@@ -8,16 +8,16 @@ public class Query {
     private final AccessibilityNodeInfo accessibilityNodeInfo;
 
     private final String currentText;
-    private final String match;
+    private final String expression;
     private final String args;
 
     private String text;
 
-    public Query(AccessibilityNodeInfo accessibilityNodeInfo, String text, String match, String args) {
+    public Query(AccessibilityNodeInfo accessibilityNodeInfo, String text, String expression, String args) {
         this.accessibilityNodeInfo = accessibilityNodeInfo;
 
         this.text = currentText = text;
-        this.match = match;
+        this.expression = expression;
         this.args = args;
     }
 
@@ -25,21 +25,25 @@ public class Query {
         return text;
     }
 
-    public String getMatch() {
-        return match;
+    public String getExpression() {
+        return expression;
     }
 
     public String getArgs() {
         return args == null ? "" : args;
     }
 
+    public String replaceExpression(String replacement) {
+        return currentText.replace(expression, replacement);
+    }
+
     public void answer(String reply) {
         if (reply == null)
             reply = "";
 
-        text = currentText.replace(match, reply);
+        text = replaceExpression(reply);
 
-        int position = accessibilityNodeInfo.getTextSelectionStart() - match.length() + reply.length();
+        int position = accessibilityNodeInfo.getTextSelectionStart() - expression.length() + reply.length();
 
         BaseLib.setText(accessibilityNodeInfo, text);
         BaseLib.setSelection(accessibilityNodeInfo, position, position);

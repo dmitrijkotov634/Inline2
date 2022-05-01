@@ -1,6 +1,6 @@
 package com.wavecat.inline.libs;
 
-import com.wavecat.inline.ArgumentTokenizer;
+import com.wavecat.inline.utils.ArgumentTokenizer;
 
 import org.luaj.vm2.LuaValue;
 import org.luaj.vm2.lib.OneArgFunction;

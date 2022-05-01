@@ -49,9 +49,7 @@ local function addalias(_, query)
         return
     end
 
-    local command = commands:get(args[2])
-
-    if command == nil then
+    if commands:get(args[2]) == nil then
         inline:toast "Command not found"
         query:answer()
         return
