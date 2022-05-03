@@ -254,8 +254,6 @@ public class InlineService extends AccessibilityService {
         if (text.equals(previousText))
             return;
 
-        previousText = text;
-
         for (LuaValue watcher : watchers) {
             try {
                 watcher.call(CoerceJavaToLua.coerce(accessibilityNodeInfo));
@@ -263,6 +261,8 @@ public class InlineService extends AccessibilityService {
                 notifyError(e);
             }
         }
+
+        previousText = accessibilityNodeInfo.getText() == null ? "" : accessibilityNodeInfo.getText().toString();
 
         if (pattern == null)
             pattern = Pattern.compile(preferences.getString(PATTERN, "(\\{([a-zA-Z]+)(?:\\s([\\S\\s]+?)\\}*)?\\}\\$)+"), Pattern.DOTALL);
