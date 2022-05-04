@@ -1,18 +1,17 @@
 require "com.wavecat.inline.libs.strings"
 
 local aliases = inline:getSharedPreferences "aliases"
-local commands
 
 local function help(_, query)
     local categories = {}
-    local iterator = commands:entrySet():iterator()
+    local iterator = inline:getAllCommands():entrySet():iterator()
     while iterator:hasNext() do
         local entry = iterator:next()
         local category = entry:getValue():getCategory()
-        if category == nil then
+        if not category then
             category = "Other"
         end
-        if categories[category] == nil then
+        if not categories[category] then
             categories[category] = {}
         end
         categories[category][entry:getKey()] = entry:getValue():getDescription()
@@ -28,13 +27,13 @@ local function help(_, query)
         end
     else
         local category = categories[query:getArgs()]
-        if category == nil then
-            result = "Category not found"
-        else
+        if category then
             result = query:getArgs() .. ": \n"
             for name, description in pairs(category) do
                 result = result .. "• " .. name .. (description == "" and "" or " : " .. description) .. "\n"
             end
+        else
+            result = "Category not found"
         end
     end
     query:answer(result)
@@ -49,7 +48,7 @@ local function addalias(_, query)
         return
     end
 
-    if commands:get(args[2]) == nil then
+    if not inline:getAllCommands():get(args[2]) then
         inline:toast "Command not found"
         query:answer()
         return
@@ -64,11 +63,15 @@ local function delalias(_, query)
     query:answer()
 end
 
+local function reload(_, query)
+    inline:createEnvironment()
+    query:answer()
+end
+
 return function(module)
     module:setCategory "Settings"
     module:registerCommand("help", help, "Displays help")
     module:registerCommand("addalias", addalias, "Set an alias for a command")
     module:registerCommand("delalias", delalias, "Remove an alias for a command")
-
-    commands = module:getAllCommands()
+    module:registerCommand("reload", reload, "Recreate environment, initializes modules")
 end

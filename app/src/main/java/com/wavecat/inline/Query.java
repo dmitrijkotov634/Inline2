@@ -45,7 +45,7 @@ public class Query {
 
         int position = accessibilityNodeInfo.getTextSelectionStart() - expression.length() + reply.length();
 
-        BaseLib.setText(accessibilityNodeInfo, text);
-        BaseLib.setSelection(accessibilityNodeInfo, position, position);
+        InlineService.setText(accessibilityNodeInfo, text);
+        InlineService.setSelection(accessibilityNodeInfo, position, position);
     }
 }
