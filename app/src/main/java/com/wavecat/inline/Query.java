@@ -21,6 +21,10 @@ public class Query {
         this.args = args;
     }
 
+    public AccessibilityNodeInfo getAccessibilityNodeInfo() {
+        return accessibilityNodeInfo;
+    }
+
     public String getText() {
         return text;
     }
