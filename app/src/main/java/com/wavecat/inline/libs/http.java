@@ -22,6 +22,7 @@ import okhttp3.FormBody;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -40,6 +41,7 @@ public class http extends TwoArgFunction {
         library.set("Request", CoerceJavaToLua.coerce(Request.class));
         library.set("buildUrl", new buildUrl());
         library.set("buildFormBody", new buildFormBody());
+        library.set("buildMultipartBody", new buildMultipartBody());
         library.set("buildBody", new buildBody());
         library.set("buildHeaders", new buildHeaders());
         library.set("call", new call_());
@@ -81,6 +83,23 @@ public class http extends TwoArgFunction {
                 if ((k = n.arg1()).isnil())
                     break;
                 builder.add(k.checkjstring(), n.arg(2).tojstring());
+            }
+
+            return CoerceJavaToLua.coerce(data);
+        }
+    }
+
+    static class buildMultipartBody extends OneArgFunction {
+        @Override
+        public LuaValue call(LuaValue data) {
+            MultipartBody.Builder builder = new MultipartBody.Builder();
+
+            LuaValue k = LuaValue.NIL;
+            while (true) {
+                Varargs n = data.next(k);
+                if ((k = n.arg1()).isnil())
+                    break;
+                builder.addFormDataPart(k.checkjstring(), n.arg(2).tojstring());
             }
 
             return CoerceJavaToLua.coerce(data);
