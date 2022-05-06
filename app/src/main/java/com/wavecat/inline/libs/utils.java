@@ -9,19 +9,17 @@ import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 @SuppressWarnings("unused")
-public class strings extends TwoArgFunction {
-
+public class utils extends TwoArgFunction {
     @Override
     public LuaValue call(LuaValue name, LuaValue env) {
         LuaValue library = tableOf();
+
         library.set("split", new split());
-        library.set("substring", new substring());
-        library.set("length", new length());
         library.set("escape", new escape());
         library.set("parseArgs", new parseArgs());
 
-        env.set("strings", library);
-        env.get("package").get("loaded").set("strings", library);
+        env.set("utils", library);
+        env.get("package").get("loaded").set("utils", library);
 
         return library;
     }
@@ -32,20 +30,6 @@ public class strings extends TwoArgFunction {
                 return CoerceJavaToLua.coerce(string.checkjstring().split(regex.checkjstring()));
             else
                 return CoerceJavaToLua.coerce(string.checkjstring().split(regex.checkjstring(), limit.checkint()));
-        }
-    }
-
-    static class substring extends ThreeArgFunction {
-        @Override
-        public LuaValue call(LuaValue string, LuaValue start, LuaValue end) {
-            return valueOf(string.checkjstring().substring(start.checkint(), end.checkint()));
-        }
-    }
-
-    static class length extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue string) {
-            return valueOf(string.checkjstring().length());
         }
     }
 

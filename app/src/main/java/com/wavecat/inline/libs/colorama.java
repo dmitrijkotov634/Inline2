@@ -48,6 +48,7 @@ public class colorama extends TwoArgFunction {
         library.set("h6", new HTag(6));
 
         library.set("newline", "<br>");
+        library.set("space", " ");
 
         env.set("colorama", library);
         env.get("package").get("loaded").set("colorama", library);
@@ -58,7 +59,8 @@ public class colorama extends TwoArgFunction {
     static class init extends TwoArgFunction {
         @Override
         public LuaValue call(LuaValue context, LuaValue availability) {
-            clipboardManager = (ClipboardManager) ((InlineService) context.checkuserdata(InlineService.class)).getSystemService(Context.CLIPBOARD_SERVICE);
+            if (!context.isnil())
+                clipboardManager = (ClipboardManager) ((Context) context.checkuserdata(Context.class)).getSystemService(Context.CLIPBOARD_SERVICE);
 
             if (!availability.isnil())
                 colorama.availability = availability.checkboolean();
@@ -161,6 +163,11 @@ public class colorama extends TwoArgFunction {
         }
 
         public void answer(String html) {
+            if (html == null || html.isEmpty()) {
+                answerRaw(html);
+                return;
+            }
+
             String text = Html.fromHtml(html).toString();
 
             if (!availability) {
@@ -174,6 +181,10 @@ public class colorama extends TwoArgFunction {
             InlineService.paste(getAccessibilityNodeInfo());
 
             InlineService.setSelection(getAccessibilityNodeInfo(), endExp = startExp + text.length(), endExp);
+        }
+
+        public void answerRaw(String reply) {
+            super.answer(reply);
         }
     }
 }

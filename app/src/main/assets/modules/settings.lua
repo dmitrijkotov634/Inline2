@@ -1,4 +1,4 @@
-require "com.wavecat.inline.libs.strings"
+require "com.wavecat.inline.libs.utils"
 
 local aliases = inline:getSharedPreferences "aliases"
 
@@ -40,7 +40,7 @@ local function help(_, query)
 end
 
 local function addalias(_, query)
-    local args = strings.split(query:getArgs(), " ", 2);
+    local args = utils.split(query:getArgs(), " ", 2);
 
     if #args ~= 2 then
         inline:toast "Invalid arguments"
