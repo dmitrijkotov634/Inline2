@@ -44,7 +44,7 @@ public class Query {
     public void answer(String reply) {
         String message = reply == null ? "" : reply;
 
-        text = replaceExpression(reply);
+        text = replaceExpression(message);
 
         int position = accessibilityNodeInfo.getTextSelectionStart() - expression.length() + message.length();
 
