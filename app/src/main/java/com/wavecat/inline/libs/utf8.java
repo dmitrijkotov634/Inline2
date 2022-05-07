@@ -16,7 +16,6 @@ public class utf8 extends TwoArgFunction {
         library.set("sub", new len());
         library.set("charpattern", "[\\0-\\x7F\\xC2-\\xF4][\\x80-\\xBF]*");
 
-
         env.set("utf8", library);
         env.get("package").get("loaded").set("utf8", library);
 

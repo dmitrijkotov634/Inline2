@@ -44,7 +44,7 @@ public class http extends TwoArgFunction {
         library.set("buildMultipartBody", new buildMultipartBody());
         library.set("buildBody", new buildBody());
         library.set("buildHeaders", new buildHeaders());
-        library.set("call", new call_());
+        library.set("call", new call());
 
         env.set("http", library);
         env.get("package").get("loaded").set("http", library);
@@ -131,7 +131,7 @@ public class http extends TwoArgFunction {
         }
     }
 
-    static class call_ extends ThreeArgFunction {
+    static class call extends ThreeArgFunction {
         @Override
         public LuaValue call(LuaValue request, LuaValue onResponse, LuaValue onFailure) {
             client.newCall((Request) CoerceLuaToJava.coerce(request, Request.class)).enqueue(new Callback() {

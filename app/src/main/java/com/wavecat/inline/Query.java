@@ -42,12 +42,11 @@ public class Query {
     }
 
     public void answer(String reply) {
-        if (reply == null)
-            reply = "";
+        String message = reply == null ? "" : reply;
 
         text = replaceExpression(reply);
 
-        int position = accessibilityNodeInfo.getTextSelectionStart() - expression.length() + reply.length();
+        int position = accessibilityNodeInfo.getTextSelectionStart() - expression.length() + message.length();
 
         InlineService.setText(accessibilityNodeInfo, text);
         InlineService.setSelection(accessibilityNodeInfo, position, position);

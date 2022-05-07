@@ -320,8 +320,8 @@ public class InlineService extends AccessibilityService {
         return accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_COPY);
     }
 
-    public static boolean paste(AccessibilityNodeInfo accessibilityNodeInfo) {
-        return accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_PASTE);
+    public static void paste(AccessibilityNodeInfo accessibilityNodeInfo) {
+        accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_PASTE);
     }
 
     public void toast(String text) {
