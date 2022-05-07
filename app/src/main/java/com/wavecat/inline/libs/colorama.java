@@ -142,7 +142,7 @@ public class colorama extends TwoArgFunction {
                 result.append(varargs.arg1().checkjstring());
             }
 
-            result.deleteCharAt(result.length() - 1);
+            result.delete(result.length() - varargs.arg1().checkjstring().length(), result.length());
 
             return valueOf(result.toString());
         }
