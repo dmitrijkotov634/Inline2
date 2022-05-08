@@ -12,8 +12,8 @@ public class utf8 extends TwoArgFunction {
     public LuaValue call(LuaValue name, LuaValue env) {
         LuaValue library = tableOf();
 
-        library.set("len", new len());
-        library.set("sub", new len());
+        library.set("len", new Len());
+        library.set("sub", new Sub());
         library.set("charpattern", "[\\0-\\x7F\\xC2-\\xF4][\\x80-\\xBF]*");
 
         env.set("utf8", library);
@@ -22,14 +22,14 @@ public class utf8 extends TwoArgFunction {
         return library;
     }
 
-    static class sub extends ThreeArgFunction {
+    static class Sub extends ThreeArgFunction {
         @Override
         public LuaValue call(LuaValue string, LuaValue start, LuaValue end) {
             return valueOf(string.checkjstring().substring(start.checkint(), end.checkint()));
         }
     }
 
-    static class len extends OneArgFunction {
+    static class Len extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue string) {
             return valueOf(string.checkjstring().length());

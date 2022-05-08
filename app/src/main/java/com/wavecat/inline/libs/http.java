@@ -16,7 +16,6 @@ import org.luaj.vm2.lib.jse.CoerceLuaToJava;
 import java.io.IOException;
 import java.util.Objects;
 
-import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
 import okhttp3.Headers;
@@ -39,12 +38,12 @@ public class http extends TwoArgFunction {
         LuaValue library = tableOf();
 
         library.set("Request", CoerceJavaToLua.coerce(Request.class));
-        library.set("buildUrl", new buildUrl());
-        library.set("buildFormBody", new buildFormBody());
-        library.set("buildMultipartBody", new buildMultipartBody());
-        library.set("buildBody", new buildBody());
-        library.set("buildHeaders", new buildHeaders());
-        library.set("call", new call());
+        library.set("buildUrl", new BuildUrl());
+        library.set("buildFormBody", new BuildFormBody());
+        library.set("buildMultipartBody", new BuildMultipartBody());
+        library.set("buildBody", new BuildBody());
+        library.set("buildHeaders", new BuildHeaders());
+        library.set("call", new Call());
 
         env.set("http", library);
         env.get("package").get("loaded").set("http", library);
@@ -55,7 +54,7 @@ public class http extends TwoArgFunction {
         return library;
     }
 
-    static class buildUrl extends TwoArgFunction {
+    static class BuildUrl extends TwoArgFunction {
         @Override
         public LuaValue call(LuaValue url, LuaValue table) {
             HttpUrl.Builder httpBuilder = Objects.requireNonNull(HttpUrl.parse(url.checkjstring())).newBuilder();
@@ -72,7 +71,7 @@ public class http extends TwoArgFunction {
         }
     }
 
-    static class buildFormBody extends OneArgFunction {
+    static class BuildFormBody extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue data) {
             FormBody.Builder builder = new FormBody.Builder();
@@ -89,7 +88,7 @@ public class http extends TwoArgFunction {
         }
     }
 
-    static class buildMultipartBody extends OneArgFunction {
+    static class BuildMultipartBody extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue data) {
             MultipartBody.Builder builder = new MultipartBody.Builder();
@@ -106,7 +105,7 @@ public class http extends TwoArgFunction {
         }
     }
 
-    static class buildBody extends TwoArgFunction {
+    static class BuildBody extends TwoArgFunction {
         @Override
         public LuaValue call(LuaValue data, LuaValue mediaType) {
             return CoerceJavaToLua.coerce(
@@ -114,7 +113,7 @@ public class http extends TwoArgFunction {
         }
     }
 
-    static class buildHeaders extends OneArgFunction {
+    static class BuildHeaders extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue table) {
             Headers.Builder builder = new Headers.Builder();
@@ -131,19 +130,19 @@ public class http extends TwoArgFunction {
         }
     }
 
-    static class call extends ThreeArgFunction {
+    static class Call extends ThreeArgFunction {
         @Override
         public LuaValue call(LuaValue request, LuaValue onResponse, LuaValue onFailure) {
             client.newCall((Request) CoerceLuaToJava.coerce(request, Request.class)).enqueue(new Callback() {
                 @Override
-                public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                public void onFailure(@NonNull okhttp3.Call call, @NonNull IOException e) {
                     if (!onFailure.isnil())
                         new Handler(Looper.getMainLooper()).post(() ->
                                 onFailure.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(e)));
                 }
 
                 @Override
-                public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
+                public void onResponse(@NonNull okhttp3.Call call, @NonNull Response response) throws IOException {
                     if (!onResponse.isnil()) {
                         ResponseBody responseBody = response.body();
 
