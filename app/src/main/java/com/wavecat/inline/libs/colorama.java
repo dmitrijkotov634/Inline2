@@ -26,12 +26,12 @@ public class colorama extends TwoArgFunction {
     public LuaValue call(LuaValue name, LuaValue env) {
         LuaValue library = tableOf();
 
-        library.set("init", new init());
-        library.set("wrap", new wrap());
-        library.set("of", new of());
-        library.set("quote", new quote());
-        library.set("font", new font());
-        library.set("text", new text());
+        library.set("init", new Init());
+        library.set("wrap", new Wrap());
+        library.set("of", new Of());
+        library.set("quote", new Quote());
+        library.set("font", new Font());
+        library.set("text", new Text());
 
         library.set("bold", new HtmlTag("b"));
         library.set("italic", new HtmlTag("i"));
@@ -56,7 +56,7 @@ public class colorama extends TwoArgFunction {
         return library;
     }
 
-    static class init extends TwoArgFunction {
+    static class Init extends TwoArgFunction {
         @Override
         public LuaValue call(LuaValue context, LuaValue availability) {
             if (!context.isnil())
@@ -69,7 +69,7 @@ public class colorama extends TwoArgFunction {
         }
     }
 
-    static class wrap extends OneArgFunction {
+    static class Wrap extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue value) {
             return new TwoArgFunction() {
@@ -83,7 +83,7 @@ public class colorama extends TwoArgFunction {
         }
     }
 
-    static class of extends OneArgFunction {
+    static class Of extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue query) {
             return CoerceJavaToLua.coerce(new ColoramaQuery((Query) query.checkuserdata(Query.class)));
@@ -116,7 +116,7 @@ public class colorama extends TwoArgFunction {
         }
     }
 
-    static class font extends TwoArgFunction {
+    static class Font extends TwoArgFunction {
         @Override
         public LuaValue call(LuaValue text, LuaValue color) {
             return valueOf("<font"
@@ -125,14 +125,14 @@ public class colorama extends TwoArgFunction {
         }
     }
 
-    static class quote extends OneArgFunction {
+    static class Quote extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue text) {
             return valueOf(TextUtils.htmlEncode(text.checkjstring()));
         }
     }
 
-    static class text extends VarArgFunction {
+    static class Text extends VarArgFunction {
         @Override
         public LuaValue invoke(Varargs varargs) {
             StringBuilder result = new StringBuilder();

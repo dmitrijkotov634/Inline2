@@ -14,9 +14,9 @@ public class utils extends TwoArgFunction {
     public LuaValue call(LuaValue name, LuaValue env) {
         LuaValue library = tableOf();
 
-        library.set("split", new split());
-        library.set("escape", new escape());
-        library.set("parseArgs", new parseArgs());
+        library.set("split", new Split());
+        library.set("escape", new Escape());
+        library.set("parseArgs", new ParseArgs());
 
         env.set("utils", library);
         env.get("package").get("loaded").set("utils", library);
@@ -24,7 +24,7 @@ public class utils extends TwoArgFunction {
         return library;
     }
 
-    static class split extends ThreeArgFunction {
+    static class Split extends ThreeArgFunction {
         public LuaValue call(LuaValue string, LuaValue regex, LuaValue limit) {
             if (limit.isnil())
                 return CoerceJavaToLua.coerce(string.checkjstring().split(regex.checkjstring()));
@@ -33,14 +33,14 @@ public class utils extends TwoArgFunction {
         }
     }
 
-    static class escape extends OneArgFunction {
+    static class Escape extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue string) {
             return valueOf(string.checkjstring().replaceAll("[$*+?.()\\[\\]%-]", "%$0"));
         }
     }
 
-    static class parseArgs extends OneArgFunction {
+    static class ParseArgs extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue string) {
             return CoerceJavaToLua.coerce(ArgumentTokenizer.tokenize(string.checkjstring()).toArray());
