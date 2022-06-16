@@ -40,15 +40,14 @@ public class colorama extends TwoArgFunction {
         library.set("strike", new HtmlTag("strike"));
         library.set("subscript", new HtmlTag("sub"));
         library.set("superscript", new HtmlTag("sup"));
-        library.set("h1", new HTag(1));
-        library.set("h2", new HTag(2));
-        library.set("h3", new HTag(3));
-        library.set("h4", new HTag(4));
-        library.set("h5", new HTag(5));
-        library.set("h6", new HTag(6));
+        library.set("h1", new HeaderTag(1));
+        library.set("h2", new HeaderTag(2));
+        library.set("h3", new HeaderTag(3));
+        library.set("h4", new HeaderTag(4));
+        library.set("h5", new HeaderTag(5));
+        library.set("h6", new HeaderTag(6));
 
         library.set("newline", "<br>");
-        library.set("space", " ");
 
         env.set("colorama", library);
         env.get("package").get("loaded").set("colorama", library);
@@ -103,10 +102,10 @@ public class colorama extends TwoArgFunction {
         }
     }
 
-    static class HTag extends OneArgFunction {
+    static class HeaderTag extends OneArgFunction {
         private final int size;
 
-        public HTag(int size) {
+        public HeaderTag(int size) {
             this.size = size;
         }
 

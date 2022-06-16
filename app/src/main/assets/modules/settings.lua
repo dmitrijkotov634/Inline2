@@ -1,7 +1,5 @@
 require "com.wavecat.inline.libs.utils"
 
-local aliases = inline:getSharedPreferences "aliases"
-
 local function help(_, query)
     local categories = {}
     local iterator = inline:getAllCommands():entrySet():iterator()
@@ -54,13 +52,25 @@ local function addalias(_, query)
         return
     end
 
-    aliases:edit():putString(args[1], args[2]):apply()
+    inline:getAliases():edit():putString(args[1], args[2]):apply()
     query:answer()
 end
 
 local function delalias(_, query)
-    aliases:edit():remove(query:getArgs()):apply()
+    inline:getAliases():edit():remove(query:getArgs()):apply()
     query:answer()
+end
+
+local function aliases(_, query)
+    local result = ""
+
+    local iterator = inline:getAliases():getAll():entrySet():iterator()
+    while iterator:hasNext() do
+        local entry = iterator:next()
+        result = result .. entry:getKey() .. " -> " .. entry:getValue() .. "\n"
+    end
+
+    query:answer(result)
 end
 
 local function reload(_, query)
@@ -73,5 +83,6 @@ return function(module)
     module:registerCommand("help", help, "Displays help")
     module:registerCommand("addalias", addalias, "Set an alias for a command")
     module:registerCommand("delalias", delalias, "Remove an alias for a command")
+    module:registerCommand("aliases", aliases, "Shows all aliases")
     module:registerCommand("reload", reload, "Recreate environment, initializes modules")
 end

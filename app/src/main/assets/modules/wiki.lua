@@ -14,6 +14,8 @@ local function wiki(_, query)
                         :get()
                         :build()
 
+    query:answer "Loading"
+
     http.call(request, function(_, _, string)
         local json = luajava.newInstance("org.json.JSONObject", string)
 

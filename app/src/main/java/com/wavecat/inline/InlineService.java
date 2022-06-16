@@ -298,6 +298,10 @@ public class InlineService extends AccessibilityService {
         return getSharedPreferences(name, Context.MODE_PRIVATE);
     }
 
+    public SharedPreferences getAliases() {
+        return aliases;
+    }
+
     public static void setText(AccessibilityNodeInfo accessibilityNodeInfo, String text) {
         Bundle arguments = new Bundle();
         arguments.putCharSequence(AccessibilityNodeInfo
@@ -330,6 +334,6 @@ public class InlineService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
-
+        instance = null;
     }
 }
