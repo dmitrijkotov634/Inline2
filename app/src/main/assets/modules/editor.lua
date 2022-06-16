@@ -69,7 +69,7 @@ local function invert(input, query)
     actions[#actions + 1] = query:replaceExpression("")
 
     inline:setText(input, actions[#actions]:gsub(
-            "[\1-\x7F\xC2-\xF4][\x80-\xBF]*",
+            utf8.charpattern,
             replacements
     ))
 end

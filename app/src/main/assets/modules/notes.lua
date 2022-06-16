@@ -1,23 +1,11 @@
 local preferences = inline:getSharedPreferences "notes"
-local list = preferences:getStringSet("notes", luajava.newInstance("java.util.HashSet"))
-
-local function getNoteName(query)
-    return query:getArgs() == "" and "temp" or query:getArgs()
-end
 
 local function save(_, query)
     query:answer()
 
-    local arg = getNoteName(query)
-    local editor = preferences:edit()
-                              :putString(arg, query:getText())
-
-    if not list:contains(arg) then
-        list:add(arg)
-        editor:putStringSet("notes", list)
-    end
-
-    editor:apply()
+    preferences:edit()
+               :putString(query:getArgs(), query:getText())
+               :apply()
 end
 
 local function note(_, query)
@@ -25,25 +13,19 @@ local function note(_, query)
 end
 
 local function delnote(_, query)
-    query:answer("")
+    query:answer()
 
-    local arg = getNoteName(query)
-
-    if list:contains(arg) then
-        list:remove(arg)
-        preferences:edit()
-                   :remove(arg)
-                   :putStringSet("notes", list)
-                   :apply()
-    end
+    preferences:edit()
+               :remove(query:getArgs())
+               :apply()
 end
 
 local function notes(_, query)
     local result = "Notes: "
 
-    local iterator = list:iterator()
+    local iterator = preferences:getAll():entrySet():iterator()
     while iterator:hasNext() do
-        result = result .. "- " .. iterator:next()
+        result = result .. " - " .. iterator:next():getKey()
     end
 
     query:answer(result)
