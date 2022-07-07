@@ -84,7 +84,7 @@ public class http extends TwoArgFunction {
                 builder.add(k.checkjstring(), n.arg(2).tojstring());
             }
 
-            return CoerceJavaToLua.coerce(data);
+            return CoerceJavaToLua.coerce(builder.build());
         }
     }
 
@@ -101,7 +101,7 @@ public class http extends TwoArgFunction {
                 builder.addFormDataPart(k.checkjstring(), n.arg(2).tojstring());
             }
 
-            return CoerceJavaToLua.coerce(data);
+            return CoerceJavaToLua.coerce(builder.build());
         }
     }
 
