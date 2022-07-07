@@ -259,7 +259,7 @@ public class InlineService extends AccessibilityService {
         previousText = accessibilityNodeInfo.getText() == null ? "" : accessibilityNodeInfo.getText().toString();
 
         if (pattern == null)
-            pattern = Pattern.compile(preferences.getString(PATTERN, "(\\{([a-zA-Z]+)(?:\\s([\\S\\s]+?)\\}*)?\\}\\$)+"), Pattern.DOTALL);
+            pattern = Pattern.compile(preferences.getString(PATTERN, "(\\{([a-zA-Z_-]+)(?:\\s([\\S\\s]+?)\\}*)?\\}\\$)+"), Pattern.DOTALL);
 
         Matcher matcher = pattern.matcher(text);
 
