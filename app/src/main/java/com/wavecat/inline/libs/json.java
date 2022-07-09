@@ -28,7 +28,6 @@ public class json extends TwoArgFunction {
         library.set("load", new Load());
         library.set("loadObject", new LoadObject());
         library.set("emptyArray", new LuaUserdata(new EmptyArray()));
-        library.set("emptyObject", new LuaUserdata(new EmptyObject()));
 
         env.set("json", library);
         env.get("package").get("loaded").set("json", library);
@@ -36,19 +35,13 @@ public class json extends TwoArgFunction {
         return library;
     }
 
-    static class EmptyObject {
-    }
-
     static class EmptyArray {
     }
 
     private static Object castValue(LuaValue value, Set<LuaValue> stack) throws JSONException {
-        if (value.isuserdata(EmptyArray.class)) {
+        if (value.isuserdata(EmptyArray.class))
             return new JSONArray();
-        }
-        if (value.isuserdata(EmptyObject.class)) {
-            return new JSONObject();
-        }
+
         switch (value.type()) {
             case TBOOLEAN:
                 return value.toboolean();
