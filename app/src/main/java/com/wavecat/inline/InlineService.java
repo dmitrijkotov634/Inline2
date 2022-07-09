@@ -291,7 +291,7 @@ public class InlineService extends AccessibilityService {
     }
 
     public SharedPreferences getDefaultSharedPreferences() {
-        return PreferenceManager.getDefaultSharedPreferences(this);
+        return preferences;
     }
 
     public SharedPreferences getSharedPreferences(String name) {

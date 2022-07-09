@@ -1,4 +1,6 @@
 require "com.wavecat.inline.libs.http"
+require "com.wavecat.inline.libs.json"
+require "com.wavecat.inline.libs.utils"
 
 local preferences = inline:getDefaultSharedPreferences()
 
@@ -17,9 +19,8 @@ local function wiki(_, query)
     query:answer "Loading"
 
     http.call(request, function(_, _, string)
-        local json = luajava.newInstance("org.json.JSONObject", string)
-
-        query:answer(json:optString("extract"))
+        local data = json.load(string)
+        query:answer(data and data.extract or "")
     end)
 end
 
@@ -37,6 +38,6 @@ end
 
 return function(module)
     module:setCategory "Wiki"
-    module:registerCommand("wiki", wiki, "Gives a short description from wikipedia")
-    module:registerCommand("wikilang", wikilang, "Sets the wikipedia language")
+    module:registerCommand("wiki", utils.hasArgs(wiki), "Gives a short description from wikipedia")
+    module:registerCommand("wikilang", utils.hasArgs(wikilang), "Sets the wikipedia language")
 end
