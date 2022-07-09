@@ -71,12 +71,11 @@ public class colorama extends TwoArgFunction {
     static class Wrap extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue value) {
+            value.checkfunction();
             return new TwoArgFunction() {
                 @Override
                 public LuaValue call(LuaValue input, LuaValue query) {
-                    value.call(input, CoerceJavaToLua.coerce(new ColoramaQuery((Query) query.checkuserdata(Query.class))));
-
-                    return NIL;
+                    return value.call(input, CoerceJavaToLua.coerce(new ColoramaQuery((Query) query.checkuserdata(Query.class))));
                 }
             };
         }

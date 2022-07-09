@@ -1,38 +1,24 @@
-local function checkArg(query)
-    if query:getArgs() == "" then
-        inline:toast "Empty value"
-        query:answer()
-        return false
-    end
-    return true
-end
+require "com.wavecat.inline.libs.utils"
 
-local function eval(_, query)
-    if checkArg(query) then
-        local chunk = load("return " .. query:getArgs())
-
-        if chunk then
-            query:answer(tostring(chunk()))
-        end
+local function eval(_, query, args)
+    local chunk = load("return " .. args[1])
+    if chunk then
+        query:answer(tostring(chunk()))
     end
 end
 
-local function exec(_, query)
-    if checkArg(query) then
-        local chunk = load(query:getArgs())
-
-        if chunk then
-            local result = chunk()
-
-            if result then
-                query:answer(tostring(result))
-            end
+local function exec(_, query, args)
+    local chunk = load(args[1])
+    if chunk then
+        local result = chunk()
+        if result then
+            query:answer(tostring(result))
         end
     end
 end
 
 return function(module)
     module:setCategory "Executor"
-    module:registerCommand("eval", eval, "Evaluates lua code")
-    module:registerCommand("exec", exec, "Executes lua code")
+    module:registerCommand("eval", utils.hasArgs(eval), "Evaluates lua code")
+    module:registerCommand("exec", utils.hasArgs(exec), "Executes lua code")
 end
