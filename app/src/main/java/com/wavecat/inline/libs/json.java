@@ -43,7 +43,7 @@ public class json extends TwoArgFunction {
 
     private static Object castValue(LuaValue value, Set<LuaValue> stack) throws JSONException {
         if (value.isuserdata(JSONObject.class) || value.isuserdata(JSONArray.class))
-            return value;
+            return value.touserdata(Object.class);
         else if (value.equals(Null))
             return JSONObject.NULL;
         else if (value instanceof LuaBoolean)
