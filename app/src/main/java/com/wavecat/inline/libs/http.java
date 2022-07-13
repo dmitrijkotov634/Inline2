@@ -11,7 +11,6 @@ import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.ThreeArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
-import org.luaj.vm2.lib.jse.CoerceLuaToJava;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -31,7 +30,7 @@ import okhttp3.ResponseBody;
 @SuppressWarnings("unused")
 public class http extends TwoArgFunction {
 
-    private static OkHttpClient client;
+    private static final OkHttpClient client = new OkHttpClient();
 
     @Override
     public LuaValue call(LuaValue name, LuaValue env) {
@@ -47,9 +46,6 @@ public class http extends TwoArgFunction {
 
         env.set("http", library);
         env.get("package").get("loaded").set("http", library);
-
-        if (client == null)
-            client = new OkHttpClient();
 
         return library;
     }
@@ -133,22 +129,24 @@ public class http extends TwoArgFunction {
     static class Call extends ThreeArgFunction {
         @Override
         public LuaValue call(LuaValue request, LuaValue onResponse, LuaValue onFailure) {
-            client.newCall((Request) CoerceLuaToJava.coerce(request, Request.class)).enqueue(new Callback() {
+            Handler handler = new Handler(Looper.getMainLooper());
+            client.newCall((Request) request.checkuserdata(Request.class)).enqueue(new Callback() {
                 @Override
                 public void onFailure(@NonNull okhttp3.Call call, @NonNull IOException e) {
                     if (!onFailure.isnil())
-                        new Handler(Looper.getMainLooper()).post(() ->
-                                onFailure.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(e)));
+                        handler.post(() -> onFailure.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(e)));
                 }
 
                 @Override
-                public void onResponse(@NonNull okhttp3.Call call, @NonNull Response response) throws IOException {
+                public void onResponse(@NonNull okhttp3.Call call, @NonNull Response response) {
+                    ResponseBody responseBody = response.body();
                     if (!onResponse.isnil()) {
-                        ResponseBody responseBody = response.body();
-
-                        LuaValue bytes = valueOf(responseBody == null ? new byte[]{} : responseBody.bytes());
-                        new Handler(Looper.getMainLooper()).post(() ->
-                                onResponse.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(response), bytes));
+                        try {
+                            LuaValue bytes = valueOf(responseBody == null ? new byte[]{} : responseBody.bytes());
+                            handler.post(() -> onResponse.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(response), bytes));
+                        } catch (Exception e) {
+                            handler.post(() -> onFailure.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(e)));
+                        }
                     }
                 }
             });

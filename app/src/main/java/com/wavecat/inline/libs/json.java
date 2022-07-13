@@ -19,6 +19,8 @@ import java.util.Set;
 @SuppressWarnings("unused")
 public class json extends TwoArgFunction {
 
+    private static final LuaValue Null = new LuaUserdata(JSONObject.NULL);
+
     @Override
     public LuaValue call(LuaValue name, LuaValue env) {
         LuaValue library = tableOf();
@@ -27,7 +29,8 @@ public class json extends TwoArgFunction {
         library.set("dumpObject", new DumpObject());
         library.set("load", new Load());
         library.set("loadObject", new LoadObject());
-        library.set("emptyObject", new LuaUserdata(new EmptyObject()));
+        library.set("emptyObject", new LuaUserdata(new JSONObject()));
+        library.set("null", Null);
 
         env.set("json", library);
         env.get("package").get("loaded").set("json", library);
@@ -35,27 +38,22 @@ public class json extends TwoArgFunction {
         return library;
     }
 
-    static class EmptyObject {
-    }
-
     private static Object castValue(LuaValue value, Set<LuaValue> stack) throws JSONException {
-        if (value.isuserdata(EmptyObject.class))
-            return new JSONObject();
-
-        switch (value.type()) {
-            case TBOOLEAN:
-                return value.toboolean();
-            case TNUMBER:
-                return value.tolong();
-            case TSTRING:
-                return value.tostring();
-            case TNIL:
-                return null;
-            case TTABLE:
-                return dumpTable(value, stack);
-            default:
-                error("unable to serialize " + value.typename());
-                return null;
+        if (value.isuserdata(JSONObject.class)
+                || value.isuserdata(JSONArray.class)
+                || value.equals(Null))
+            return value;
+        else if (value.isboolean())
+            return value.toboolean();
+        else if (value.isstring())
+            return value.tojstring();
+        else if (value.isnumber())
+            return value.tolong();
+        else if (value.istable())
+            return dumpTable(value, stack);
+        else {
+            error("unable to serialize " + value.typename());
+            return null;
         }
     }
 

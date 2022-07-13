@@ -11,6 +11,8 @@ import android.content.res.AssetManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
@@ -34,6 +36,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,6 +49,8 @@ public class InlineService extends AccessibilityService {
 
     private SharedPreferences preferences;
     private SharedPreferences aliases;
+
+    private Timer timer;
 
     private final HashMap<String, Command> commands = new HashMap<>();
     private final Set<LuaValue> watchers = new HashSet<>();
@@ -90,17 +96,23 @@ public class InlineService extends AccessibilityService {
 
         environment.set("inline", CoerceJavaToLua.coerce(this));
 
+        if (timer != null) {
+            timer.cancel();
+            timer.purge();
+            timer = null;
+        }
+
         commands.clear();
         watchers.clear();
 
         try {
             loadModules();
         } catch (IOException | LuaError e) {
-            notifyError(e);
+            notifyException(e);
         }
     }
 
-    private void notifyError(Exception e) {
+    public void notifyException(Exception e) {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -252,7 +264,7 @@ public class InlineService extends AccessibilityService {
             try {
                 watcher.call(CoerceJavaToLua.coerce(accessibilityNodeInfo));
             } catch (LuaError e) {
-                notifyError(e);
+                notifyException(e);
             }
         }
 
@@ -266,19 +278,21 @@ public class InlineService extends AccessibilityService {
         while (matcher.find()) {
             Command command = commands.get(aliases.getString(matcher.group(2), matcher.group(2)));
 
-            if (command != null) {
-                Query query = new Query(accessibilityNodeInfo, text, matcher.group(), matcher.group(3));
-
-                try {
-                    command.getCallable().call(
-                            CoerceJavaToLua.coerce(accessibilityNodeInfo),
-                            CoerceJavaToLua.coerce(query));
-                } catch (LuaError e) {
-                    notifyError(e);
-                }
-
-                text = query.getText();
+            if (command == null) {
+                return;
             }
+
+            Query query = new Query(accessibilityNodeInfo, text, matcher.group(), matcher.group(3));
+
+            try {
+                command.getCallable().call(
+                        CoerceJavaToLua.coerce(accessibilityNodeInfo),
+                        CoerceJavaToLua.coerce(query));
+            } catch (LuaError e) {
+                notifyException(e);
+            }
+
+            text = query.getText();
         }
     }
 
@@ -300,6 +314,29 @@ public class InlineService extends AccessibilityService {
 
     public SharedPreferences getAliases() {
         return aliases;
+    }
+
+    public Timer getTimer() {
+        if (timer == null)
+            timer = new Timer();
+
+        return timer;
+    }
+
+    public TimerTask timerTask(LuaValue function) {
+        function.checkfunction();
+        return new TimerTask() {
+            @Override
+            public void run() {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    try {
+                        function.call();
+                    } catch (Exception e) {
+                        notifyException(e);
+                    }
+                });
+            }
+        };
     }
 
     public static void setText(AccessibilityNodeInfo accessibilityNodeInfo, String text) {
