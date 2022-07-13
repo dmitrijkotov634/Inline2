@@ -4,6 +4,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.luaj.vm2.LuaBoolean;
+import org.luaj.vm2.LuaInteger;
+import org.luaj.vm2.LuaString;
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaUserdata;
 import org.luaj.vm2.LuaValue;
@@ -19,7 +22,7 @@ import java.util.Set;
 @SuppressWarnings("unused")
 public class json extends TwoArgFunction {
 
-    private static final LuaValue Null = new LuaUserdata(JSONObject.NULL);
+    private static final LuaValue Null = new LuaUserdata(new Object());
 
     @Override
     public LuaValue call(LuaValue name, LuaValue env) {
@@ -39,17 +42,17 @@ public class json extends TwoArgFunction {
     }
 
     private static Object castValue(LuaValue value, Set<LuaValue> stack) throws JSONException {
-        if (value.isuserdata(JSONObject.class)
-                || value.isuserdata(JSONArray.class)
-                || value.equals(Null))
+        if (value.isuserdata(JSONObject.class) || value.isuserdata(JSONArray.class))
             return value;
-        else if (value.isboolean())
+        else if (value.equals(Null))
+            return JSONObject.NULL;
+        else if (value instanceof LuaBoolean)
             return value.toboolean();
-        else if (value.isstring())
+        else if (value instanceof LuaInteger)
+            return value.toint();
+        else if (value instanceof LuaString)
             return value.tojstring();
-        else if (value.isnumber())
-            return value.tolong();
-        else if (value.istable())
+        else if (value instanceof LuaTable)
             return dumpTable(value, stack);
         else {
             error("unable to serialize " + value.typename());
@@ -72,8 +75,7 @@ public class json extends TwoArgFunction {
                 Varargs n = value.next(k);
                 if ((k = n.arg1()).isnil())
                     break;
-                LuaValue v = n.arg(2);
-                jsonArray.put(castValue(v, stack));
+                jsonArray.put(castValue(n.arg(2), stack));
             }
             return jsonArray;
         } else {
@@ -83,8 +85,7 @@ public class json extends TwoArgFunction {
                 Varargs n = value.next(k);
                 if ((k = n.arg1()).isnil())
                     break;
-                LuaValue v = n.arg(2);
-                jsonObject.put(k.checkjstring(), castValue(v, stack));
+                jsonObject.put(k.checkjstring(), castValue(n.arg(2), stack));
             }
             return jsonObject;
         }
