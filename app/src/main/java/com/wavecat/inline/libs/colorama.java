@@ -154,10 +154,10 @@ public class colorama extends TwoArgFunction {
         public ColoramaQuery(Query query) {
             super(query.getAccessibilityNodeInfo(), query.getText(), query.getExpression(), query.getArgs());
 
-            int index = query.getText().indexOf(query.getExpression());
+            int index = text.indexOf(expression);
 
             startExp = index;
-            endExp = index + query.getExpression().length();
+            endExp = index + expression.length();
         }
 
         public void answer(String html) {
@@ -169,16 +169,16 @@ public class colorama extends TwoArgFunction {
             String text = Html.fromHtml(html).toString();
 
             if (!availability) {
-                super.answer(text);
+                answerRaw(text);
                 return;
             }
 
-            clipboardManager.setPrimaryClip(ClipData.newHtmlText("colorama", "colorama answer", html));
+            clipboardManager.setPrimaryClip(ClipData.newHtmlText("colorama", text, html));
 
-            InlineService.setSelection(getAccessibilityNodeInfo(), startExp, endExp);
-            InlineService.paste(getAccessibilityNodeInfo());
+            InlineService.setSelection(accessibilityNodeInfo, startExp, endExp);
+            InlineService.paste(accessibilityNodeInfo);
 
-            InlineService.setSelection(getAccessibilityNodeInfo(), endExp = startExp + text.length(), endExp);
+            InlineService.setSelection(accessibilityNodeInfo, endExp = startExp + text.length(), endExp);
         }
 
         public void answerRaw(String reply) {

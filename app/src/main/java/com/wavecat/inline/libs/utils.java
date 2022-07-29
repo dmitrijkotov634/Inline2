@@ -39,7 +39,7 @@ public class utils extends TwoArgFunction {
     static class Escape extends OneArgFunction {
         @Override
         public LuaValue call(LuaValue string) {
-            return valueOf(string.checkjstring().replaceAll("[$*+?.()\\[\\]%-]", "%$0"));
+            return valueOf(string.checkjstring().replaceAll("[().%+\\-\\*\\?\\[^$\\]]", "%$0"));
         }
     }
 

@@ -5,13 +5,13 @@ import android.view.accessibility.AccessibilityNodeInfo;
 @SuppressWarnings("unused")
 public class Query {
 
-    private final AccessibilityNodeInfo accessibilityNodeInfo;
+    protected final AccessibilityNodeInfo accessibilityNodeInfo;
 
-    private final String currentText;
-    private final String expression;
-    private final String args;
+    protected final String currentText;
+    protected final String expression;
+    protected final String args;
 
-    private String text;
+    protected String text;
 
     public Query(AccessibilityNodeInfo accessibilityNodeInfo, String text, String expression, String args) {
         this.accessibilityNodeInfo = accessibilityNodeInfo;

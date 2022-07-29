@@ -1,14 +1,14 @@
 require "com.wavecat.inline.libs.utils"
 
-local function eval(_, query, args)
-    local chunk = load("return " .. args[1])
+local function eval(_, query)
+    local chunk = load("return " .. query:getArgs())
     if chunk then
         query:answer(tostring(chunk()))
     end
 end
 
-local function exec(_, query, args)
-    local chunk = load(args[1])
+local function exec(_, query)
+    local chunk = load(query:getArgs())
     if chunk then
         local result = chunk()
         if result then
