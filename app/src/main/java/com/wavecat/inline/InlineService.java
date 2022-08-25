@@ -32,7 +32,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -55,10 +55,11 @@ public class InlineService extends AccessibilityService {
     private final HashMap<String, Command> commands = new HashMap<>();
     private final Set<LuaValue> watchers = new HashSet<>();
 
+    private HashSet<String> defaultPath = new HashSet<>();
+
     private final static String PATH = "path";
     private final static String PATTERN = "pattern";
 
-    private final static String DEFAULT_PATH = "/inline";
     private final static String DEFAULT_ASSETS_PATH = "modules/";
 
     private final static String CHANNEL_ID = "error";
@@ -71,6 +72,10 @@ public class InlineService extends AccessibilityService {
     protected void onServiceConnected() {
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
         aliases = getSharedPreferences("aliases", MODE_PRIVATE);
+
+        defaultPath = new HashSet<>(
+                Arrays.asList(Environment.getExternalStorageDirectory().getPath() + "/inline",
+                        getExternalFilesDirs(null)[0].getAbsolutePath() + "/modules"));
 
         createEnvironment();
 
@@ -222,8 +227,7 @@ public class InlineService extends AccessibilityService {
             applyModule(environment.load(new String(buffer), path), path);
         }
 
-        Set<String> paths = preferences.getStringSet(PATH, new HashSet<>(
-                Collections.singletonList(Environment.getExternalStorageDirectory().getPath() + DEFAULT_PATH)));
+        Set<String> paths = preferences.getStringSet(PATH, defaultPath);
 
         for (String path : paths) {
             File[] files = new File(path).listFiles();
