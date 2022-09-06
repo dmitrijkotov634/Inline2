@@ -1,5 +1,7 @@
 require "com.wavecat.inline.libs.utils"
 
+local aliases = inline:getSharedPreferences "aliases"
+
 local function help(_, query)
     local categories = {}
     local iterator = inline:getAllCommands():entrySet():iterator()
@@ -52,19 +54,19 @@ local function addalias(_, query)
         return
     end
 
-    inline:getAliases():edit():putString(args[1], args[2]):apply()
+    aliases:edit():putString(args[1], args[2]):apply()
     query:answer()
 end
 
 local function delalias(_, query)
-    inline:getAliases():edit():remove(query:getArgs()):apply()
+    aliases:edit():remove(query:getArgs()):apply()
     query:answer()
 end
 
-local function aliases(_, query)
+local function aliases_(_, query)
     local result = ""
 
-    local iterator = inline:getAliases():getAll():entrySet():iterator()
+    local iterator = aliases:getAll():entrySet():iterator()
     while iterator:hasNext() do
         local entry = iterator:next()
         result = result .. entry:getKey() .. " -> " .. entry:getValue() .. "\n"
@@ -78,11 +80,21 @@ local function reload(_, query)
     query:answer()
 end
 
+local function finder(name, _, callable)
+    if callable == nil then
+        local command = inline:getAllCommands():get(aliases:getString(name, ""))
+        if command then
+            return command:getCallable()
+        end
+    end
+end
+
 return function(module)
     module:setCategory "Settings"
     module:registerCommand("help", help, "Displays help")
     module:registerCommand("addalias", addalias, "Set an alias for a command")
     module:registerCommand("delalias", delalias, "Remove an alias for a command")
-    module:registerCommand("aliases", aliases, "Shows all aliases")
+    module:registerCommand("aliases", aliases_, "Shows all aliases")
     module:registerCommand("reload", reload, "Recreate environment, initializes modules")
+    module:registerCommandFinder(finder)
 end

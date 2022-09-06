@@ -23,7 +23,9 @@ import androidx.preference.PreferenceManager;
 
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
+import org.luaj.vm2.LuaString;
 import org.luaj.vm2.LuaValue;
+import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 import org.luaj.vm2.lib.jse.JsePlatform;
 
@@ -48,12 +50,12 @@ public class InlineService extends AccessibilityService {
     private Globals environment;
 
     private SharedPreferences preferences;
-    private SharedPreferences aliases;
 
     private Timer timer;
 
     private final HashMap<String, Command> commands = new HashMap<>();
     private final Set<LuaValue> watchers = new HashSet<>();
+    private final Set<LuaValue> commandFinders = new HashSet<>();
 
     private HashSet<String> defaultPath = new HashSet<>();
 
@@ -71,7 +73,6 @@ public class InlineService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        aliases = getSharedPreferences("aliases", MODE_PRIVATE);
 
         defaultPath = new HashSet<>(
                 Arrays.asList(Environment.getExternalStorageDirectory().getPath() + "/inline",
@@ -109,6 +110,7 @@ public class InlineService extends AccessibilityService {
 
         commands.clear();
         watchers.clear();
+        commandFinders.clear();
 
         try {
             loadModules();
@@ -179,6 +181,14 @@ public class InlineService extends AccessibilityService {
 
         public void unregisterWatcher(LuaValue callable) {
             watchers.remove(callable);
+        }
+
+        public void registerCommandFinder(LuaValue callable) {
+            commandFinders.add(callable.checkfunction());
+        }
+
+        public void unregisterCommandFinder(LuaValue callable) {
+            commandFinders.remove(callable);
         }
     }
 
@@ -280,16 +290,43 @@ public class InlineService extends AccessibilityService {
         Matcher matcher = pattern.matcher(text);
 
         while (matcher.find()) {
-            Command command = commands.get(aliases.getString(matcher.group(2), matcher.group(2)));
+            LuaValue callable = LuaValue.NIL;
 
-            if (command == null) {
-                return;
+            Command command = commands.get(matcher.group(2));
+
+            if (command != null)
+                callable = command.getCallable();
+
+            LuaValue args = LuaValue.valueOf(
+                    matcher.group(3) == null
+                            ? ""
+                            : matcher.group(3));
+
+            for (LuaValue finder : commandFinders) {
+                try {
+                    Varargs values = finder.invoke(LuaValue.valueOf(matcher.group(2)), args, callable);
+
+                    if (values.arg1().isfunction()) {
+                        callable = values.arg1();
+                    }
+
+                    if (values.arg(2) instanceof LuaString) {
+                        args = values.arg(2);
+                    }
+
+                } catch (LuaError e) {
+                    notifyException(e);
+                }
             }
 
-            Query query = new Query(accessibilityNodeInfo, text, matcher.group(), matcher.group(3));
+            if (callable == null) {
+                continue;
+            }
+
+            Query query = new Query(accessibilityNodeInfo, text, matcher.group(), args.tojstring());
 
             try {
-                command.getCallable().call(
+                callable.call(
                         CoerceJavaToLua.coerce(accessibilityNodeInfo),
                         CoerceJavaToLua.coerce(query));
             } catch (LuaError e) {
@@ -314,10 +351,6 @@ public class InlineService extends AccessibilityService {
 
     public SharedPreferences getSharedPreferences(String name) {
         return getSharedPreferences(name, Context.MODE_PRIVATE);
-    }
-
-    public SharedPreferences getAliases() {
-        return aliases;
     }
 
     public Timer getTimer() {
