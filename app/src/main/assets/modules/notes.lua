@@ -21,11 +21,11 @@ local function delnote(_, query)
 end
 
 local function notes(_, query)
-    local result = "Notes: "
+    local result = "List of notes:\n"
 
     local iterator = preferences:getAll():entrySet():iterator()
     while iterator:hasNext() do
-        result = result .. " - " .. iterator:next():getKey()
+        result = result .. " - " .. iterator:next():getKey() .. "\n"
     end
 
     query:answer(result)

@@ -345,6 +345,10 @@ public class InlineService extends AccessibilityService {
         return watchers;
     }
 
+    public Set<LuaValue> getAllCommandFinders() {
+        return commandFinders;
+    }
+
     public SharedPreferences getDefaultSharedPreferences() {
         return preferences;
     }
