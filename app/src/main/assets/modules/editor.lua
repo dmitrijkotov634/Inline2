@@ -2,23 +2,6 @@ require "com.wavecat.inline.libs.utf8"
 require "com.wavecat.inline.libs.utils"
 
 local actions = {}
-local replacements = {
-    a = "а", A = "А",
-    C = "С", c = "с",
-    e = "е", E = "Е",
-    o = "о", O = "О",
-    P = "Р", p = "р",
-    x = "х", X = "Х",
-    B = "В",
-    H = "Н",
-    K = "К",
-    M = "М",
-    T = "Т",
-}
-
-for k, v in pairs(replacements) do
-    replacements[v] = k
-end
 
 local function replace(input, query, args)
     actions[#actions + 1] = query:replaceExpression("")
@@ -51,6 +34,24 @@ local function undo(input, query)
 end
 
 local function invert(input, query)
+    local replacements = {
+        a = "а", A = "А",
+        C = "С", c = "с",
+        e = "е", E = "Е",
+        o = "о", O = "О",
+        P = "Р", p = "р",
+        x = "х", X = "Х",
+        B = "В",
+        H = "Н",
+        K = "К",
+        M = "М",
+        T = "Т",
+    }
+
+    for k, v in pairs(replacements) do
+        replacements[v] = k
+    end
+
     actions[#actions + 1] = query:replaceExpression("")
 
     inline:setText(input, actions[#actions]:gsub(

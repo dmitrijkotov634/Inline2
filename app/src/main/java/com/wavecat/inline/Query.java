@@ -34,7 +34,7 @@ public class Query {
     }
 
     public String getArgs() {
-        return args == null ? "" : args;
+        return args;
     }
 
     public String replaceExpression(String replacement) {
