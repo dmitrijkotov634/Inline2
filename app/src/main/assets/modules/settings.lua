@@ -18,6 +18,7 @@ local function help(_, query)
     end
     local result = ""
     if query:getArgs() == "" then
+        result = result .. "Help for Inline\nFor more help on how to use a command, type help <category name>\n"
         for name, category in pairs(categories) do
             result = result .. "• " .. name .. ": "
             for cname, _ in pairs(category) do
@@ -28,7 +29,7 @@ local function help(_, query)
     else
         local category = categories[query:getArgs()]
         if category then
-            result = query:getArgs() .. ": \n"
+            result = "Help for " .. query:getArgs() .. ": \n"
             for name, description in pairs(category) do
                 result = result .. "• " .. name .. (description == "" and "" or " : " .. description) .. "\n"
             end
@@ -64,7 +65,7 @@ local function delalias(_, query)
 end
 
 local function aliases_(_, query)
-    local result = ""
+    local result = "List of aliases:\n"
 
     local iterator = aliases:getAll():entrySet():iterator()
     while iterator:hasNext() do
