@@ -138,15 +138,11 @@ public class http extends TwoArgFunction {
                 }
 
                 @Override
-                public void onResponse(@NonNull okhttp3.Call call, @NonNull Response response) {
+                public void onResponse(@NonNull okhttp3.Call call, @NonNull Response response) throws IOException {
                     ResponseBody responseBody = response.body();
                     if (!onResponse.isnil()) {
-                        try {
-                            LuaValue bytes = valueOf(responseBody == null ? new byte[]{} : responseBody.bytes());
-                            handler.post(() -> onResponse.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(response), bytes));
-                        } catch (Exception e) {
-                            handler.post(() -> onFailure.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(e)));
-                        }
+                        LuaValue bytes = valueOf(responseBody == null ? new byte[]{} : responseBody.bytes());
+                        handler.post(() -> onResponse.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(response), bytes));
                     }
                 }
             });
