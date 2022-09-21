@@ -91,6 +91,9 @@ public class InlineService extends AccessibilityService {
         setServiceInfo(info);
 
         instance = this;
+
+        Thread.setDefaultUncaughtExceptionHandler(
+                (thread, e) -> notifyException(e));
     }
 
     public static InlineService getInstance() {
@@ -119,7 +122,7 @@ public class InlineService extends AccessibilityService {
         }
     }
 
-    public void notifyException(Exception e) {
+    public void notifyException(Throwable e) {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -319,7 +322,7 @@ public class InlineService extends AccessibilityService {
                 }
             }
 
-            if (callable == null) {
+            if (callable.isnil()) {
                 continue;
             }
 
