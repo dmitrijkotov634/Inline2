@@ -6,6 +6,8 @@ import android.content.Context;
 import android.text.Html;
 import android.text.TextUtils;
 
+import androidx.annotation.NonNull;
+
 import com.wavecat.inline.InlineService;
 import com.wavecat.inline.Query;
 
@@ -40,6 +42,7 @@ public class colorama extends TwoArgFunction {
         library.set("strike", new HtmlTag("strike"));
         library.set("subscript", new HtmlTag("sub"));
         library.set("superscript", new HtmlTag("sup"));
+
         library.set("h1", new HeaderTag(1));
         library.set("h2", new HeaderTag(2));
         library.set("h3", new HeaderTag(3));
@@ -52,14 +55,22 @@ public class colorama extends TwoArgFunction {
         env.set("colorama", library);
         env.get("package").get("loaded").set("colorama", library);
 
+        if (clipboardManager == null) {
+            InlineService context = InlineService.getInstance();
+
+            if (context == null)
+                error("service is not active");
+
+            clipboardManager = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+        }
+
         return library;
     }
 
     static class Init extends TwoArgFunction {
         @Override
-        public LuaValue call(LuaValue context, LuaValue availability) {
-            if (!context.isnil())
-                clipboardManager = (ClipboardManager) ((Context) context.checkuserdata(Context.class)).getSystemService(Context.CLIPBOARD_SERVICE);
+        public LuaValue call(LuaValue arg1, LuaValue arg2) {
+            LuaValue availability = arg1.isboolean() ? arg1 : arg2; // legacy
 
             if (!availability.isnil())
                 colorama.availability = availability.checkboolean();
@@ -183,6 +194,19 @@ public class colorama extends TwoArgFunction {
 
         public void answerRaw(String reply) {
             super.answer(reply);
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return "ColoramaQuery{" +
+                    "currentText='" + currentText + '\'' +
+                    ", expression='" + expression + '\'' +
+                    ", args='" + args + '\'' +
+                    ", text='" + text + '\'' +
+                    ", startExp=" + startExp +
+                    ", endExp=" + endExp +
+                    '}';
         }
     }
 }

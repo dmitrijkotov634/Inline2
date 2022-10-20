@@ -17,6 +17,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.preference.PreferenceManager;
@@ -78,6 +79,8 @@ public class InlineService extends AccessibilityService {
                 Arrays.asList(Environment.getExternalStorageDirectory().getPath() + "/inline",
                         getExternalFilesDirs(null)[0].getAbsolutePath() + "/modules"));
 
+        instance = this;
+
         createEnvironment();
 
         super.onServiceConnected();
@@ -89,8 +92,6 @@ public class InlineService extends AccessibilityService {
         info.eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED;
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_ALL_MASK;
         setServiceInfo(info);
-
-        instance = this;
 
         Thread.setDefaultUncaughtExceptionHandler(
                 (thread, e) -> notifyException(e));
@@ -152,10 +153,22 @@ public class InlineService extends AccessibilityService {
     private class Module {
 
         private final String filepath;
+        private final boolean isInternal;
+
         private String category;
+
+        public Module(File file) {
+            this.filepath = file.getPath();
+            isInternal = false;
+        }
 
         public Module(String filepath) {
             this.filepath = filepath;
+            isInternal = true;
+        }
+
+        public boolean isInternal() {
+            return isInternal;
         }
 
         public String getFilepath() {
@@ -218,16 +231,19 @@ public class InlineService extends AccessibilityService {
         public LuaValue getCallable() {
             return callable;
         }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return "Command{" +
+                    "category='" + category + '\'' +
+                    ", callable=" + callable +
+                    ", description='" + description + '\'' +
+                    '}';
+        }
     }
 
-    private void applyModule(LuaValue value, String filePath) {
-        LuaValue result = value.call();
-
-        if (result.isfunction())
-            result.call(CoerceJavaToLua.coerce(new Module(filePath)));
-    }
-
-    private void loadModules() throws IOException {
+    public void loadModules() throws IOException {
         AssetManager assets = getResources().getAssets();
 
         for (String fileName : assets.list(DEFAULT_ASSETS_PATH)) {
@@ -237,7 +253,7 @@ public class InlineService extends AccessibilityService {
             byte[] buffer = new byte[stream.available()];
             stream.read(buffer);
 
-            applyModule(environment.load(new String(buffer), path), path);
+            environment.load(new String(buffer), path).call().call(CoerceJavaToLua.coerce(new Module(path)));
         }
 
         Set<String> paths = preferences.getStringSet(PATH, defaultPath);
@@ -260,7 +276,10 @@ public class InlineService extends AccessibilityService {
                 int ch = reader.read();
                 if (ch != 65279) reader.reset();
 
-                applyModule(environment.load(reader, file.getAbsolutePath()), file.getPath());
+                LuaValue result = environment.load(reader, file.getAbsolutePath()).call();
+
+                if (result.isfunction())
+                    result.call(CoerceJavaToLua.coerce(new Module(file)));
             }
         }
     }
@@ -416,5 +435,11 @@ public class InlineService extends AccessibilityService {
     @Override
     public void onInterrupt() {
         instance = null;
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return ">_< Inline " + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")";
     }
 }

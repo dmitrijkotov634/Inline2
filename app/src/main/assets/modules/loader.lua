@@ -1,15 +1,14 @@
-require "com.wavecat.inline.libs.http"
-require "com.wavecat.inline.libs.colorama"
-
 local preferences = inline:getDefaultSharedPreferences()
 
 if not preferences:getBoolean("loader_module", false) then
-    return
+    return function()
+    end
 end
 
-local dirPath
+require "com.wavecat.inline.libs.http"
+require "com.wavecat.inline.libs.colorama"
 
-colorama.init(inline)
+local dirPath
 
 local function delete(_, query)
     luajava.newInstance("java.io.File", dirPath .. query:getArgs()):delete()
