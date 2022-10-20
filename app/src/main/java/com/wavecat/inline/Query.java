@@ -2,6 +2,8 @@ package com.wavecat.inline;
 
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import androidx.annotation.NonNull;
+
 @SuppressWarnings("unused")
 public class Query {
 
@@ -50,5 +52,16 @@ public class Query {
 
         InlineService.setText(accessibilityNodeInfo, text);
         InlineService.setSelection(accessibilityNodeInfo, position, position);
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "Query{" +
+                "currentText='" + currentText + '\'' +
+                ", expression='" + expression + '\'' +
+                ", args='" + args + '\'' +
+                ", text='" + text + '\'' +
+                '}';
     }
 }
