@@ -29,10 +29,9 @@ public class utils extends TwoArgFunction {
 
     static class Split extends ThreeArgFunction {
         public LuaValue call(LuaValue string, LuaValue regex, LuaValue limit) {
-            if (limit.isnil())
-                return CoerceJavaToLua.coerce(string.checkjstring().split(regex.checkjstring()));
-            else
-                return CoerceJavaToLua.coerce(string.checkjstring().split(regex.checkjstring(), limit.checkint()));
+            return CoerceJavaToLua.coerce(limit.isnil()
+                    ? string.checkjstring().split(regex.checkjstring())
+                    : string.checkjstring().split(regex.checkjstring(), limit.checkint()));
         }
     }
 
@@ -62,16 +61,14 @@ public class utils extends TwoArgFunction {
 
                     Object[] args = ArgumentTokenizer.tokenize(query.getArgs()).toArray();
 
-                    if (args.length == count.toint()) {
+                    if (args.length == count.toint())
                         return value.call(input, arg2, CoerceJavaToLua.coerce(args));
-                    } else {
-                        if (errorValue.isfunction()) {
-                            return errorValue.call(input, arg2);
-                        } else {
-                            query.answer("Wrong arguments");
-                            return NIL;
-                        }
-                    }
+
+                    if (errorValue.isfunction())
+                        return errorValue.call(input, arg2);
+
+                    query.answer("Wrong arguments");
+                    return NIL;
                 }
             };
         }
@@ -87,15 +84,14 @@ public class utils extends TwoArgFunction {
                     Query query = ((Query) arg2.checkuserdata(Query.class));
 
                     if (query.getArgs().isEmpty()) {
-                        if (errorValue.isfunction()) {
+                        if (errorValue.isfunction())
                             return errorValue.call(input, arg2);
-                        } else {
-                            query.answer("Empty argument");
-                            return NIL;
-                        }
-                    } else {
-                        return value.call(input, arg2);
+
+                        query.answer("Empty argument");
+                        return NIL;
                     }
+
+                    return value.call(input, arg2);
                 }
             };
         }

@@ -1,12 +1,12 @@
+require "com.wavecat.inline.libs.http"
+require "com.wavecat.inline.libs.colorama"
+
 local preferences = inline:getDefaultSharedPreferences()
 
 if not preferences:getBoolean("loader_module", false) then
     return function()
     end
 end
-
-require "com.wavecat.inline.libs.http"
-require "com.wavecat.inline.libs.colorama"
 
 local dirPath
 

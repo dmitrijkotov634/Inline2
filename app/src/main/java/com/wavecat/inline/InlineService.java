@@ -17,7 +17,6 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.preference.PreferenceManager;
@@ -38,6 +37,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
 
 @SuppressWarnings("unused")
 public class InlineService extends AccessibilityService {
+
     private static InlineService instance;
 
     private Globals environment;
@@ -55,7 +56,8 @@ public class InlineService extends AccessibilityService {
     private Timer timer;
 
     private final HashMap<String, Command> commands = new HashMap<>();
-    private final Set<LuaValue> watchers = new HashSet<>();
+    private final HashMap<LuaValue, Integer> watchers = new HashMap<>();
+
     private final Set<LuaValue> commandFinders = new HashSet<>();
 
     private HashSet<String> defaultPath = new HashSet<>();
@@ -66,6 +68,10 @@ public class InlineService extends AccessibilityService {
     private final static String DEFAULT_ASSETS_PATH = "modules/";
 
     private final static String CHANNEL_ID = "error";
+
+    public static final int TYPE_TEXT_CHANGED = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED;
+    public static final int TYPE_SELECTION_CHANGED = AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED;
+    public static final int TYPE_ALL_MASK = TYPE_SELECTION_CHANGED | TYPE_TEXT_CHANGED;
 
     private Pattern pattern;
 
@@ -89,7 +95,7 @@ public class InlineService extends AccessibilityService {
 
         info.flags = AccessibilityServiceInfo.DEFAULT;
 
-        info.eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED;
+        info.eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED | AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED;
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_ALL_MASK;
         setServiceInfo(info);
 
@@ -191,8 +197,12 @@ public class InlineService extends AccessibilityService {
             commands.remove(name);
         }
 
+        public void registerWatcher(LuaValue callable, int mask) {
+            watchers.put(callable.checkfunction(), mask);
+        }
+
         public void registerWatcher(LuaValue callable) {
-            watchers.add(callable.checkfunction());
+            watchers.put(callable.checkfunction(), TYPE_TEXT_CHANGED);
         }
 
         public void unregisterWatcher(LuaValue callable) {
@@ -205,41 +215,6 @@ public class InlineService extends AccessibilityService {
 
         public void unregisterCommandFinder(LuaValue callable) {
             commandFinders.remove(callable);
-        }
-    }
-
-    public static class Command {
-
-        private final String category;
-        private final LuaValue callable;
-        private final String description;
-
-        public Command(String category, LuaValue callable, String description) {
-            this.category = category;
-            this.callable = callable;
-            this.description = description;
-        }
-
-        public String getCategory() {
-            return category;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-
-        public LuaValue getCallable() {
-            return callable;
-        }
-
-        @NonNull
-        @Override
-        public String toString() {
-            return "Command{" +
-                    "category='" + category + '\'' +
-                    ", callable=" + callable +
-                    ", description='" + description + '\'' +
-                    '}';
         }
     }
 
@@ -284,6 +259,16 @@ public class InlineService extends AccessibilityService {
         }
     }
 
+    private void notifyWatchers(AccessibilityNodeInfo accessibilityNodeInfo, int eventType) {
+        for (Map.Entry<LuaValue, Integer> entry : watchers.entrySet())
+            try {
+                if ((entry.getValue() & eventType) == eventType)
+                    entry.getKey().call(CoerceJavaToLua.coerce(accessibilityNodeInfo), LuaValue.valueOf(eventType));
+            } catch (LuaError e) {
+                notifyException(e);
+            }
+    }
+
     @Override
     public void onAccessibilityEvent(AccessibilityEvent accessibilityEvent) {
         AccessibilityNodeInfo accessibilityNodeInfo = accessibilityEvent.getSource();
@@ -291,18 +276,17 @@ public class InlineService extends AccessibilityService {
         if (accessibilityNodeInfo == null)
             return;
 
+        if (accessibilityEvent.getEventType() == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED) {
+            notifyWatchers(accessibilityNodeInfo, accessibilityEvent.getEventType());
+            return;
+        }
+
         String text = accessibilityNodeInfo.getText() == null ? "" : accessibilityNodeInfo.getText().toString();
 
         if (text.equals(previousText))
             return;
 
-        for (LuaValue watcher : watchers) {
-            try {
-                watcher.call(CoerceJavaToLua.coerce(accessibilityNodeInfo));
-            } catch (LuaError e) {
-                notifyException(e);
-            }
-        }
+        notifyWatchers(accessibilityNodeInfo, accessibilityEvent.getEventType());
 
         previousText = accessibilityNodeInfo.getText() == null ? "" : accessibilityNodeInfo.getText().toString();
 
@@ -328,13 +312,11 @@ public class InlineService extends AccessibilityService {
                 try {
                     Varargs values = finder.invoke(LuaValue.valueOf(matcher.group(2)), args, callable);
 
-                    if (values.arg1().isfunction()) {
+                    if (values.arg1().isfunction())
                         callable = values.arg1();
-                    }
 
-                    if (values.arg(2) instanceof LuaString) {
+                    if (values.arg(2) instanceof LuaString)
                         args = values.arg(2);
-                    }
 
                 } catch (LuaError e) {
                     notifyException(e);
@@ -363,7 +345,7 @@ public class InlineService extends AccessibilityService {
         return commands;
     }
 
-    public Set<LuaValue> getAllWatchers() {
+    public HashMap<LuaValue, Integer> getAllWatchers() {
         return watchers;
     }
 
@@ -380,10 +362,7 @@ public class InlineService extends AccessibilityService {
     }
 
     public Timer getTimer() {
-        if (timer == null)
-            timer = new Timer();
-
-        return timer;
+        return timer == null ? timer = new Timer() : timer;
     }
 
     public TimerTask timerTask(LuaValue function) {
@@ -435,11 +414,5 @@ public class InlineService extends AccessibilityService {
     @Override
     public void onInterrupt() {
         instance = null;
-    }
-
-    @NonNull
-    @Override
-    public String toString() {
-        return ">_< Inline " + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")";
     }
 }
