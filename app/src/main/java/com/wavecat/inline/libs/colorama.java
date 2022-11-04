@@ -177,19 +177,33 @@ public class colorama extends TwoArgFunction {
                 return;
             }
 
-            String text = Html.fromHtml(html).toString();
+            String raw = Html.fromHtml(html).toString();
 
             if (!availability) {
-                answerRaw(text);
+                answerRaw(raw);
                 return;
             }
 
-            clipboardManager.setPrimaryClip(ClipData.newHtmlText("colorama", text, html));
+            for (int attempt = 0; attempt < 3; attempt++) {
+                clipboardManager.setPrimaryClip(ClipData.newHtmlText("colorama", raw, html));
 
-            InlineService.setSelection(accessibilityNodeInfo, startExp, endExp);
-            InlineService.paste(accessibilityNodeInfo);
+                InlineService.setSelection(accessibilityNodeInfo, startExp, endExp);
+                InlineService.paste(accessibilityNodeInfo);
 
-            InlineService.setSelection(accessibilityNodeInfo, endExp = startExp + text.length(), endExp);
+                text = replaceExpression(raw);
+
+                endExp = startExp + raw.length();
+
+                accessibilityNodeInfo.refresh();
+                if (accessibilityNodeInfo.getText().length() != text.length()) {
+                    answerRaw(raw);
+                    continue;
+                }
+
+                InlineService.setSelection(accessibilityNodeInfo, endExp, endExp);
+
+                break;
+            }
         }
 
         public void answerRaw(String reply) {

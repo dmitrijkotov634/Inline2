@@ -3,14 +3,14 @@ plugins {
 }
 
 android {
-    compileSdk 32
+    compileSdk 33
 
     defaultConfig {
         applicationId "com.wavecat.inline"
         minSdk 21
-        targetSdk 32
-        versionCode 7
-        versionName "0.10"
+        targetSdk 33
+        versionCode 8
+        versionName "0.11"
     }
 
     buildTypes {
