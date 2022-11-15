@@ -43,6 +43,10 @@ public class Query {
         return currentText.replace(expression, replacement);
     }
 
+    public int getStartPosition() {
+        return currentText.indexOf(expression);
+    }
+
     public void answer(String reply) {
         String message = reply == null ? "" : reply;
 

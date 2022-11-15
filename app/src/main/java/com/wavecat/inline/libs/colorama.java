@@ -165,7 +165,7 @@ public class colorama extends TwoArgFunction {
         public ColoramaQuery(Query query) {
             super(query.getAccessibilityNodeInfo(), query.getText(), query.getExpression(), query.getArgs());
 
-            int index = text.indexOf(expression);
+            int index = getStartPosition();
 
             startExp = index;
             endExp = index + expression.length();
