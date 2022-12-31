@@ -30,7 +30,7 @@ public class menu extends TwoArgFunction {
         LuaValue library = tableOf();
 
         library.set("create", new Create());
-        library.set("session", CoerceJavaToLua.coerce(session));
+        library.set("current", CoerceJavaToLua.coerce(session));
 
         env.set("menu", library);
         env.get("package").get("loaded").set("menu", library);
@@ -58,7 +58,7 @@ public class menu extends TwoArgFunction {
                 session.remove(accessibilityNodeInfo);
 
                 if (context.getCancelAction().isnil())
-                    context.getQuery().answer("");
+                    context.getQuery().answer(null);
                 else
                     context.getCancelAction().call(arg, CoerceJavaToLua.coerce(context.getQuery()));
 
