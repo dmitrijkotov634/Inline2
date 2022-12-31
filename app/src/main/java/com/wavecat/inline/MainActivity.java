@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.view.WindowCompat;
@@ -18,6 +19,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.wavecat.inline.databinding.ActivityMainBinding;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -30,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
 
         super.onCreate(savedInstanceState);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
         ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -59,7 +65,36 @@ public class MainActivity extends AppCompatActivity {
             else service.createEnvironment();
         });
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        Set<String> unloaded = new HashSet<>(preferences.getStringSet(InlineService.UNLOADED, new HashSet<>()));
+
+        binding.reloadService.setOnLongClickListener(view -> {
+            try {
+                String[] internalModules = getResources().getAssets().list(InlineService.DEFAULT_ASSETS_PATH);
+                boolean[] enabled = new boolean[internalModules.length];
+
+                for (int index = 0; index < internalModules.length; index++)
+                    enabled[index] = !unloaded.contains(internalModules[index]);
+
+                new MaterialAlertDialogBuilder(MainActivity.this)
+                        .setTitle(R.string.internal_modules)
+                        .setMultiChoiceItems(internalModules, enabled, (dialogInterface, index, value) -> {
+                            if (!value) unloaded.add(internalModules[index]);
+                            else unloaded.remove(internalModules[index]);
+                        })
+                        .setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
+                            preferences.edit()
+                                    .putStringSet(InlineService.UNLOADED, unloaded)
+                                    .apply();
+
+                            binding.reloadService.callOnClick();
+                        })
+                        .show();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return true;
+        });
 
         binding.loader.setChecked(preferences.getBoolean(LOADER_PREF, false));
         binding.loader.setOnCheckedChangeListener((view, isChecked) -> {
@@ -80,5 +115,10 @@ public class MainActivity extends AppCompatActivity {
 
             binding.reloadService.callOnClick();
         });
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
+            }).launch(Manifest.permission.POST_NOTIFICATIONS);
+        }
     }
 }

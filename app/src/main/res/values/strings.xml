@@ -14,6 +14,7 @@
 
     <string name="reload">Reload</string>
     <string name="reload_hint">Recreate environment, initializes modules</string>
+    <string name="internal_modules">Internal modules</string>
 
     <string name="loader_availability">Loader availability</string>
 

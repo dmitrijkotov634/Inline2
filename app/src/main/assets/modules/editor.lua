@@ -49,6 +49,11 @@ local function erase(input, _)
     inline:setText(input, "")
 end
 
+local function paste(input, query)
+    query:answer()
+    inline:paste(input)
+end
+
 return function(module)
     module:setCategory "Editor"
     module:registerCommand("replace", utils.command(replace, 2), "Changes text in which all occurrences of a substring are replaced by another substring")
@@ -56,4 +61,5 @@ return function(module)
     module:registerCommand("repeat", repeat_, "Returns a string repeated the desired number of times")
     module:registerCommand("invert", invert, "Changes some characters to similar ones")
     module:registerCommand("erase", erase, "Erases all text")
+    module:registerCommand("paste", paste, "Pastes text from clipboard")
 end

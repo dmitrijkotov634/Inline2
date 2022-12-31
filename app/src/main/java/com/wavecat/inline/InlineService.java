@@ -62,10 +62,11 @@ public class InlineService extends AccessibilityService {
 
     private HashSet<String> defaultPath = new HashSet<>();
 
-    private final static String PATH = "path";
-    private final static String PATTERN = "pattern";
+    public final static String PATH = "path";
+    public final static String PATTERN = "pattern";
+    public final static String UNLOADED = "unloaded";
 
-    private final static String DEFAULT_ASSETS_PATH = "modules/";
+    public final static String DEFAULT_ASSETS_PATH = "modules/";
 
     private final static String CHANNEL_ID = "error";
 
@@ -100,7 +101,7 @@ public class InlineService extends AccessibilityService {
         setServiceInfo(info);
 
         Thread.setDefaultUncaughtExceptionHandler(
-                (thread, e) -> notifyException(e));
+                (thread, e) -> notifyException(2, e));
     }
 
     public static InlineService getInstance() {
@@ -125,11 +126,11 @@ public class InlineService extends AccessibilityService {
         try {
             loadModules();
         } catch (IOException | LuaError e) {
-            notifyException(e);
+            notifyException(1, e);
         }
     }
 
-    public void notifyException(Throwable e) {
+    public void notifyException(int id, Throwable throwable) {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -146,14 +147,14 @@ public class InlineService extends AccessibilityService {
 
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(getString(R.string.app_name))
-                .setContentText(e.getMessage())
+                .setContentText(throwable.getMessage())
                 .setStyle(new NotificationCompat.BigTextStyle())
                 .setSmallIcon(R.drawable.ic_baseline_error_24)
                 .build();
 
         notificationManager.notify(1, notification);
 
-        e.printStackTrace();
+        throwable.printStackTrace();
     }
 
     private class Module {
@@ -219,9 +220,13 @@ public class InlineService extends AccessibilityService {
     }
 
     public void loadModules() throws IOException {
+        Set<String> unloaded = preferences.getStringSet(UNLOADED, new HashSet<>());
+
         AssetManager assets = getResources().getAssets();
 
         for (String fileName : assets.list(DEFAULT_ASSETS_PATH)) {
+            if (unloaded.contains(fileName)) continue;
+
             String path = DEFAULT_ASSETS_PATH + fileName;
 
             InputStream stream = assets.open(path);
@@ -234,18 +239,17 @@ public class InlineService extends AccessibilityService {
         Set<String> paths = preferences.getStringSet(PATH, defaultPath);
 
         for (String path : paths) {
+            if (unloaded.contains(path)) continue;
+
             File[] files = new File(path).listFiles();
 
             if (files == null)
                 continue;
 
             for (File file : files) {
-
-                if (!file.isFile())
-                    continue;
+                if (!file.isFile()) continue;
 
                 BufferedReader reader = new BufferedReader(new FileReader(file));
-
                 reader.mark(1);
 
                 int ch = reader.read();
@@ -253,8 +257,7 @@ public class InlineService extends AccessibilityService {
 
                 LuaValue result = environment.load(reader, file.getAbsolutePath()).call();
 
-                if (result.isfunction())
-                    result.call(CoerceJavaToLua.coerce(new Module(file)));
+                if (result.isfunction()) result.call(CoerceJavaToLua.coerce(new Module(file)));
             }
         }
     }
@@ -265,7 +268,7 @@ public class InlineService extends AccessibilityService {
                 if ((entry.getValue() & eventType) == eventType)
                     entry.getKey().call(CoerceJavaToLua.coerce(accessibilityNodeInfo), LuaValue.valueOf(eventType));
             } catch (LuaError e) {
-                notifyException(e);
+                notifyException(entry.getKey().hashCode(), e);
             }
     }
 
@@ -319,7 +322,7 @@ public class InlineService extends AccessibilityService {
                         args = values.arg(2);
 
                 } catch (LuaError e) {
-                    notifyException(e);
+                    notifyException(finder.hashCode(), e);
                 }
             }
 
@@ -334,7 +337,7 @@ public class InlineService extends AccessibilityService {
                         CoerceJavaToLua.coerce(accessibilityNodeInfo),
                         CoerceJavaToLua.coerce(query));
             } catch (LuaError e) {
-                notifyException(e);
+                notifyException(callable.hashCode(), e);
             }
 
             text = query.getText();
@@ -374,7 +377,7 @@ public class InlineService extends AccessibilityService {
                     try {
                         function.call();
                     } catch (Exception e) {
-                        notifyException(e);
+                        notifyException(function.hashCode(), e);
                     }
                 });
             }
