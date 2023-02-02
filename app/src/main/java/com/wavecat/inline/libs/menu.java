@@ -23,14 +23,14 @@ import java.util.Set;
 @SuppressWarnings("unused")
 public class menu extends TwoArgFunction {
 
-    private static final HashMap<AccessibilityNodeInfo, Context> session = new HashMap<>();
+    private final HashMap<AccessibilityNodeInfo, Context> current = new HashMap<>();
 
     @Override
     public LuaValue call(LuaValue name, LuaValue env) {
         LuaValue library = tableOf();
 
         library.set("create", new Create());
-        library.set("current", CoerceJavaToLua.coerce(session));
+        library.set("current", CoerceJavaToLua.coerce(current));
 
         env.set("menu", library);
         env.get("package").get("loaded").set("menu", library);
@@ -45,17 +45,17 @@ public class menu extends TwoArgFunction {
         return library;
     }
 
-    static class MenuWatcher extends OneArgFunction {
+    class MenuWatcher extends OneArgFunction {
         public LuaValue call(LuaValue arg) {
             AccessibilityNodeInfo accessibilityNodeInfo = (AccessibilityNodeInfo) arg.checkuserdata(AccessibilityNodeInfo.class);
 
-            Context context = session.get(accessibilityNodeInfo);
+            Context context = current.get(accessibilityNodeInfo);
 
             if (context == null)
                 return NIL;
 
             if (accessibilityNodeInfo.getText() == null || accessibilityNodeInfo.getText().length() != context.length()) {
-                session.remove(accessibilityNodeInfo);
+                current.remove(accessibilityNodeInfo);
 
                 if (context.getCancelAction().isnil())
                     context.getQuery().answer(null);
@@ -70,7 +70,7 @@ public class menu extends TwoArgFunction {
                         accessibilityNodeInfo.getTextSelectionStart() < point.getEnd() &&
                         accessibilityNodeInfo.getTextSelectionEnd() > point.getStart() &&
                         accessibilityNodeInfo.getTextSelectionEnd() < point.getEnd()) {
-                    session.remove(accessibilityNodeInfo);
+                    current.remove(accessibilityNodeInfo);
                     point.getAction().call(arg, CoerceJavaToLua.coerce(context.getQuery()));
                     break;
                 }
@@ -159,7 +159,7 @@ public class menu extends TwoArgFunction {
         }
     }
 
-    static class Create extends ThreeArgFunction {
+    class Create extends ThreeArgFunction {
         @Override
         public LuaValue call(LuaValue arg1, LuaValue arg2, LuaValue arg3) {
             StringBuilder result = new StringBuilder();
@@ -185,15 +185,16 @@ public class menu extends TwoArgFunction {
                 }
             }
 
-            String text = result.toString();
-            query.answer(text);
-            session.put(query.getAccessibilityNodeInfo(), new Context(
+            query.answer(result.toString());
+
+            Context context = new Context(
                     query,
                     parts,
                     arg3,
-                    query.getText().length()));
+                    query.getText().length());
 
-            return valueOf(text);
+            current.put(query.getAccessibilityNodeInfo(), context);
+            return CoerceJavaToLua.coerce(context);
         }
     }
 }

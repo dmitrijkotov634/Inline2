@@ -1,3 +1,5 @@
+require "com.wavecat.inline.libs.menu"
+
 local aliases = inline:getSharedPreferences "aliases"
 
 local function addalias(_, query)
@@ -24,18 +26,6 @@ local function delalias(_, query)
     query:answer()
 end
 
-local function aliases_(_, query)
-    local result = "List of aliases:\n"
-
-    local iterator = aliases:getAll():entrySet():iterator()
-    while iterator:hasNext() do
-        local entry = iterator:next()
-        result = result .. entry:getKey() .. " -> " .. entry:getValue() .. "\n"
-    end
-
-    query:answer(result)
-end
-
 local function finder(name, _, callable)
     if callable == nil then
         local command = inline:getAllCommands():get(aliases:getString(name, ""))
@@ -45,10 +35,46 @@ local function finder(name, _, callable)
     end
 end
 
+local function aliases_(_, query)
+    local result = {
+        {
+            caption = "[X]",
+            action = function(_, queryExit)
+                queryExit:answer()
+            end
+        },
+        " List of aliases:\n\n"
+    }
+    local iterator = aliases:getAll():entrySet():iterator()
+    while iterator:hasNext() do
+        local entry = iterator:next()
+        result[#result + 1] = {
+            caption = "[X]",
+            action = function(_, q)
+                menu.create(q, {
+                    "Delete ",
+                    entry:getKey(),
+                    "? ",
+                    { caption = "[Yes]", action = function(_, queryYes)
+                        aliases:edit()
+                               :remove(entry:getKey())
+                               :apply()
+                        aliases_(_, queryYes)
+                    end },
+                    " ",
+                    { caption = "[No]", action = aliases_ }
+                }, aliases_)
+            end
+        }
+        result[#result + 1] = " " .. entry:getKey() .. " -> " .. entry:getValue() .. "\n"
+    end
+    menu.create(query, result, aliases_)
+end
+
 return function(module)
     module:setCategory "Settings"
     module:registerCommand("addalias", addalias, "Set an alias for a command")
     module:registerCommand("delalias", delalias, "Remove an alias for a command")
-    module:registerCommand("aliases", aliases_, "Shows all aliases")
+    module:registerCommand("aliases", aliases_, "Aliases manager")
     module:registerCommandFinder(finder)
 end

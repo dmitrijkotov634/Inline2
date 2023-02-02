@@ -1,4 +1,5 @@
 require "com.wavecat.inline.libs.utils"
+require "com.wavecat.inline.libs.menu"
 
 local preferences = inline:getSharedPreferences "binder2"
 local enabled = inline:getDefaultSharedPreferences():getBoolean("binder", false)
@@ -40,20 +41,6 @@ local function echo(_, query)
     query:answer(query:getArgs())
 end
 
-local function binds(_, query)
-    local iterator = preferences:getAll():entrySet():iterator()
-    local result = ""
-    while iterator:hasNext() do
-        local entry = iterator:next()
-        result = result .. entry:getKey() .. " -> " .. entry:getValue() .. "\n"
-    end
-    if enabled then
-        enabled = false
-        inline:toast "Binder disabled"
-    end
-    query:answer(result)
-end
-
 local function binder(input)
     if enabled then
         local text = input:getText()
@@ -81,13 +68,49 @@ local function binder(input)
     end
 end
 
+local function binds(_, query)
+    enabled = false
+    local iterator = preferences:getAll():entrySet():iterator()
+    local result = {
+        {
+            caption = "[X]",
+            action = function(_, queryExit)
+                queryExit:answer()
+                enabled = true
+            end
+        },
+        " List of bindings:\n\n"
+    }
+    while iterator:hasNext() do
+        local entry = iterator:next()
+        result[#result + 1] = {
+            caption = "[X]",
+            action = function(_, q)
+                menu.create(q, {
+                    "Unbind ",
+                    entry:getKey(),
+                    "? ",
+                    { caption = "[Yes]", action = function(_, queryYes)
+                        preferences:edit():remove(entry:getKey()):apply()
+                        binds(_, queryYes)
+                    end },
+                    " ",
+                    { caption = "[No]", action = binds }
+                }, binds)
+            end
+        }
+        result[#result + 1] = " " .. entry:getKey() .. " -> " .. entry:getValue() .. "\n"
+    end
+    menu.create(query, result, binds)
+end
+
 return function(module)
     module:setCategory "Binder"
     module:registerCommand("bind", bind, "Creates a macro")
     module:registerCommand("unbind", unbind, "Deletes a macro")
     module:registerCommand("unbindall", unbindall, "Removes all macros")
     module:registerCommand("binder", activate, "Toggles the state of the processor")
-    module:registerCommand("binds", binds, "Outputs all macros")
     module:registerCommand("echo", echo, "Prints the arguments passed to the command")
+    module:registerCommand("binds", binds, "Bindings manager")
     module:registerWatcher(binder)
 end
