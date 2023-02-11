@@ -10,6 +10,7 @@ import org.luaj.vm2.Varargs;
 import org.luaj.vm2.lib.OneArgFunction;
 import org.luaj.vm2.lib.ThreeArgFunction;
 import org.luaj.vm2.lib.TwoArgFunction;
+import org.luaj.vm2.lib.ZeroArgFunction;
 import org.luaj.vm2.lib.jse.CoerceJavaToLua;
 
 import java.io.IOException;
@@ -34,6 +35,15 @@ public class http extends TwoArgFunction {
 
     @Override
     public LuaValue call(LuaValue name, LuaValue env) {
+        LuaValue library = getLibraryTable(client);
+
+        env.set("http", library);
+        env.get("package").get("loaded").set("http", library);
+
+        return library;
+    }
+
+    private static LuaValue getLibraryTable(OkHttpClient client) {
         LuaValue library = tableOf();
 
         library.set("Request", CoerceJavaToLua.coerce(Request.class));
@@ -42,12 +52,34 @@ public class http extends TwoArgFunction {
         library.set("buildMultipartBody", new BuildMultipartBody());
         library.set("buildBody", new BuildBody());
         library.set("buildHeaders", new BuildHeaders());
-        library.set("call", new Call());
+        library.set("newBuilder", new NewBuilder(client));
+        library.set("call", new Call(client));
 
-        env.set("http", library);
-        env.get("package").get("loaded").set("http", library);
+        LuaValue metatable = tableOf();
+        metatable.set(CALL, new GetHttpLibrary());
+        library.setmetatable(metatable);
 
         return library;
+    }
+
+    static class GetHttpLibrary extends TwoArgFunction {
+        @Override
+        public LuaValue call(LuaValue table, LuaValue client) {
+            return getLibraryTable((OkHttpClient) client.checkuserdata(OkHttpClient.class));
+        }
+    }
+
+    static class NewBuilder extends ZeroArgFunction {
+        private final OkHttpClient client;
+
+        public NewBuilder(OkHttpClient client) {
+            this.client = client;
+        }
+
+        @Override
+        public LuaValue call() {
+            return CoerceJavaToLua.coerce(client.newBuilder());
+        }
     }
 
     static class BuildUrl extends TwoArgFunction {
@@ -55,7 +87,7 @@ public class http extends TwoArgFunction {
         public LuaValue call(LuaValue url, LuaValue table) {
             HttpUrl.Builder httpBuilder = Objects.requireNonNull(HttpUrl.parse(url.checkjstring())).newBuilder();
 
-            LuaValue k = LuaValue.NIL;
+            LuaValue k = NIL;
             while (true) {
                 Varargs n = table.next(k);
                 if ((k = n.arg1()).isnil())
@@ -72,7 +104,7 @@ public class http extends TwoArgFunction {
         public LuaValue call(LuaValue data) {
             FormBody.Builder builder = new FormBody.Builder();
 
-            LuaValue k = LuaValue.NIL;
+            LuaValue k = NIL;
             while (true) {
                 Varargs n = data.next(k);
                 if ((k = n.arg1()).isnil())
@@ -89,7 +121,7 @@ public class http extends TwoArgFunction {
         public LuaValue call(LuaValue data) {
             MultipartBody.Builder builder = new MultipartBody.Builder();
 
-            LuaValue k = LuaValue.NIL;
+            LuaValue k = NIL;
             while (true) {
                 Varargs n = data.next(k);
                 if ((k = n.arg1()).isnil())
@@ -114,7 +146,7 @@ public class http extends TwoArgFunction {
         public LuaValue call(LuaValue table) {
             Headers.Builder builder = new Headers.Builder();
 
-            LuaValue k = LuaValue.NIL;
+            LuaValue k = NIL;
             while (true) {
                 Varargs n = table.next(k);
                 if ((k = n.arg1()).isnil())
@@ -127,9 +159,17 @@ public class http extends TwoArgFunction {
     }
 
     static class Call extends ThreeArgFunction {
+
+        private final OkHttpClient client;
+
+        public Call(OkHttpClient client) {
+            this.client = client;
+        }
+
         @Override
         public LuaValue call(LuaValue request, LuaValue onResponse, LuaValue onFailure) {
             Handler handler = new Handler(Looper.getMainLooper());
+
             client.newCall((Request) request.checkuserdata(Request.class)).enqueue(new Callback() {
                 @Override
                 public void onFailure(@NonNull okhttp3.Call call, @NonNull IOException e) {
