@@ -7,6 +7,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,6 +18,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
 
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.preference.PreferenceManager;
@@ -151,6 +153,9 @@ public class InlineService extends AccessibilityService {
                 .setStyle(new NotificationCompat.BigTextStyle())
                 .setSmallIcon(R.drawable.ic_baseline_error_24)
                 .build();
+
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+            return;
 
         notificationManager.notify(1, notification);
 
@@ -294,7 +299,7 @@ public class InlineService extends AccessibilityService {
         previousText = accessibilityNodeInfo.getText() == null ? "" : accessibilityNodeInfo.getText().toString();
 
         if (pattern == null)
-            pattern = Pattern.compile(preferences.getString(PATTERN, "(\\{([a-zA-Z_-]+)(?:\\s([\\S\\s]+?)\\}*)?\\}\\$)+"), Pattern.DOTALL);
+            pattern = Pattern.compile(preferences.getString(PATTERN, "(\\{([\\S]+)(?:\\s([\\S\\s]+?)\\}*)?\\}\\$)+"), Pattern.DOTALL);
 
         Matcher matcher = pattern.matcher(text);
 
