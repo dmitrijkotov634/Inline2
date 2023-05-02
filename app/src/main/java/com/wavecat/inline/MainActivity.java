@@ -155,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
 
         new MaterialAlertDialogBuilder(MainActivity.this)
                 .setTitle(R.string.preferences)
-                .setItems(items, (dialog, which) -> new PreferencesDialog(MainActivity.this, getLayoutInflater()).showPreferences(
+                .setItems(items, (dialog, which) -> new PreferencesDialog(MainActivity.this, getLayoutInflater()).create(
                         items[which],
                         Objects.requireNonNull(
                                 service.getAllPreferences().get(items[which]))))
