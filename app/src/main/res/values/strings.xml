@@ -6,10 +6,9 @@
     <string name="channel_name">Error</string>
     <string name="channel_description">Inline exceptions</string>
 
-    <string name="optional">Optional</string>
     <string name="turn_on">Turn on</string>
 
-    <string name="request_storage_permission">Request storage permission</string>
+    <string name="storage_permission">Storage permission</string>
     <string name="open_accessibility_settings">Open accessibility settings</string>
 
     <string name="reload">Reload</string>
@@ -20,4 +19,6 @@
 
     <string name="attention">Attention</string>
     <string name="unknown_sources">Downloading modules from unknown sources may put your personal data at risk</string>
+
+    <string name="preferences">Preferences</string>
 </resources>

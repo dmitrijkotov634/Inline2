@@ -2,7 +2,7 @@ require "com.wavecat.inline.libs.utils"
 require "com.wavecat.inline.libs.menu"
 
 local preferences = inline:getSharedPreferences "binder2"
-local enabled = inline:getDefaultSharedPreferences():getBoolean("binder", false)
+local enabled = inline:getDefaultSharedPreferences():getBoolean("binder", true)
 
 local Query = luajava.bindClass "com.wavecat.inline.Query"
 
@@ -104,6 +104,30 @@ local function binds(_, query)
     menu.create(query, result, binds)
 end
 
+local function getPreferences(prefs)
+    return {
+        prefs.checkBox("binder", "Enable binder"),
+        prefs.button("Unbind All", function()
+            prefs:cancel()
+            prefs:showPreferences("Unbind All?", function()
+                return {
+                    "This button will erase all your binds",
+                    prefs.row({
+                        prefs.button("Yes", function()
+                            preferences:edit():clear():apply()
+                            prefs:cancel()
+                        end),
+                        "  ",
+                        prefs.button("No", function()
+                            prefs:cancel()
+                        end)
+                    })
+                }
+            end)
+        end)
+    }
+end
+
 return function(module)
     module:setCategory "Binder"
     module:registerCommand("bind", bind, "Creates a macro")
@@ -112,5 +136,6 @@ return function(module)
     module:registerCommand("binder", activate, "Toggles the state of the processor")
     module:registerCommand("echo", echo, "Prints the arguments passed to the command")
     module:registerCommand("binds", binds, "Bindings manager")
+    module:registerPreferences(getPreferences)
     module:registerWatcher(binder)
 end

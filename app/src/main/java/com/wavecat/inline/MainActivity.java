@@ -7,8 +7,11 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.view.Menu;
+import android.view.MenuItem;
 
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.view.WindowCompat;
@@ -21,8 +24,10 @@ import com.wavecat.inline.databinding.ActivityMainBinding;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
+@SuppressWarnings("unused")
 public class MainActivity extends AppCompatActivity {
 
     private static final String LOADER_PREF = "loader_module";
@@ -46,16 +51,6 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
-        });
-
-        binding.requestPermission.setOnClickListener(view -> {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                startActivity(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                        Uri.fromParts("package", getPackageName(), null)));
-            } else {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
-            }
         });
 
         binding.reloadService.setOnClickListener(view -> {
@@ -119,6 +114,62 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
             }).launch(Manifest.permission.POST_NOTIFICATIONS);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        invalidateOptionsMenu();
+
+        super.onResume();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu, menu);
+
+        if (InlineService.getInstance() == null ||
+                InlineService.getInstance().getAllPreferences().isEmpty())
+            menu.removeItem(R.id.preferences);
+
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.storage_permission) {
+            showExternalStorageSettings();
+        } else if (id == R.id.preferences) {
+            showPreferencesDialog();
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void showPreferencesDialog() {
+        InlineService service = InlineService.getInstance();
+
+        String[] items = service.getAllPreferences().keySet().toArray(new String[0]);
+
+        new MaterialAlertDialogBuilder(MainActivity.this)
+                .setTitle(R.string.preferences)
+                .setItems(items, (dialog, which) -> new PreferencesDialog(MainActivity.this, getLayoutInflater()).showPreferences(
+                        items[which],
+                        Objects.requireNonNull(
+                                service.getAllPreferences().get(items[which]))))
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> dialog.cancel())
+                .show();
+    }
+
+    private void showExternalStorageSettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            startActivity(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.fromParts("package", getPackageName(), null)));
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
         }
     }
 }

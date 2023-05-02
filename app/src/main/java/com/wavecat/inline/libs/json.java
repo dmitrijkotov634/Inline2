@@ -5,6 +5,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.luaj.vm2.LuaBoolean;
+import org.luaj.vm2.LuaDouble;
 import org.luaj.vm2.LuaInteger;
 import org.luaj.vm2.LuaString;
 import org.luaj.vm2.LuaTable;
@@ -50,6 +51,8 @@ public class json extends TwoArgFunction {
             return value.toboolean();
         else if (value instanceof LuaInteger)
             return value.toint();
+        else if (value instanceof LuaDouble)
+            return value.todouble();
         else if (value instanceof LuaString)
             return value.tojstring();
         else if (value instanceof LuaTable)
