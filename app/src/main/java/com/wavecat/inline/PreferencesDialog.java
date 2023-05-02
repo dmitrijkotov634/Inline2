@@ -46,7 +46,7 @@ public class PreferencesDialog {
     public LuaTable seekBar;
 
     @SuppressWarnings("unused")
-    public LuaFunction showPreferences = new VarArgFunction() {
+    public LuaFunction create = new VarArgFunction() {
         @Override
         public Varargs invoke(Varargs args) {
             LinkedHashSet<PreferencesItem> preferences = new LinkedHashSet<>();
@@ -66,7 +66,7 @@ public class PreferencesDialog {
                 preferences.add(new PreferencesItem(sharedPreferences, value));
             }
 
-            showPreferences(args.checkjstring(2), preferences);
+            create(args.checkjstring(2), preferences);
             return NIL;
         }
     };
@@ -86,7 +86,7 @@ public class PreferencesDialog {
     }
 
     @SuppressWarnings("unused")
-    public void showPreferences(String title, LinkedHashSet<PreferencesItem> preferences) {
+    public void create(String title, LinkedHashSet<PreferencesItem> preferences) {
         PreferencesDialogBinding binding = PreferencesDialogBinding.inflate(inflater);
 
         for (PreferencesItem preference : preferences) {
