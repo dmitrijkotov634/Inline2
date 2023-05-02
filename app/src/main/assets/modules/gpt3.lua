@@ -13,14 +13,6 @@ local client = http(
             :build()
 )
 
-local function setopenaikey(_, query)
-    query:answer()
-
-    preferences:edit()
-               :putString("openai_key", query:getArgs())
-               :apply()
-end
-
 local function gpt3(_, query)
     local headers = http.buildHeaders({ Authorization = "Bearer " .. preferences:getString("openai_key", "") })
     local request = http.Request.Builder.new():url("https://api.openai.com/v1/completions")
@@ -29,10 +21,10 @@ local function gpt3(_, query)
             http.buildBody(
                     json.dump(
                             {
-                                model = "text-davinci-003",
-                                prompt = query:getArgs(),
+                                model = preferences:getString("openai_gpt3_model", "text-davinci-003"),
+                                prompt = query:getArgs() == "" and query:replaceExpression("") or query:getArgs(),
                                 max_tokens = 2048,
-                                temperature = 1
+                                temperature = 0.7
                             }
                     ),
                     "application/json"
@@ -45,7 +37,7 @@ local function gpt3(_, query)
             request,
             function(_, _, string)
                 local result = json.load(string)
-                query:answer(query:getArgs() .. (result.choices and result.choices[1].text or "Error"))
+                query:answer(query:getArgs() .. (result.choices and result.choices[1].text or result.error.message))
             end,
             function(_, e)
                 query:answer("Error: " .. e:getMessage())
@@ -53,8 +45,18 @@ local function gpt3(_, query)
     )
 end
 
+local function getPreferences(prefs)
+    return {
+        prefs.textInput("openai_key", "OpenAI Key"),
+        "The OpenAI API is powered by a diverse set of models with different capabilities and price points.\n",
+        prefs.spinner("openai_gpt3_model",
+                { "text-davinci-003", "text-davinci-002", "text-curie-001", "text-babbage-001", "text-ada-001" }),
+    }
+end
+
 return function(module)
-    module:setCategory "GPT3"
-    module:registerCommand("set_openai_key", setopenaikey, "Set OpenAI key")
+    module:setCategory "OpenAI"
     module:registerCommand("gpt3", gpt3, "Makes a request to GPT-3")
+    module:setCategory "GPT-3"
+    module:registerPreferences(getPreferences)
 end

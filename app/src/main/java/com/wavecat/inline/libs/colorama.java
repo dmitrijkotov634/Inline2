@@ -195,14 +195,12 @@ public class colorama extends TwoArgFunction {
                 endExp = startExp + raw.length();
 
                 accessibilityNodeInfo.refresh();
-                if (accessibilityNodeInfo.getText().length() != text.length()) {
-                    answerRaw(raw);
-                    continue;
+                if (accessibilityNodeInfo.getText().length() == text.length()) {
+                    InlineService.setSelection(accessibilityNodeInfo, endExp, endExp);
+                    break;
                 }
 
-                InlineService.setSelection(accessibilityNodeInfo, endExp, endExp);
-
-                break;
+                answerRaw(raw);
             }
         }
 

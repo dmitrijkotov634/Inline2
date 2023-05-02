@@ -2,6 +2,4 @@
 
     <style name="Theme.Inline" parent="Theme.Material3.DayNight.NoActionBar" />
 
-    <style name="Theme.Mivlgu" parent="Theme.Inline" />
-
 </resources>

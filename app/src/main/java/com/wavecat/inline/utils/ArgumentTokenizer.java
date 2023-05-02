@@ -11,7 +11,6 @@ public class ArgumentTokenizer {
     private static final int DOUBLE_QUOTE_STATE = 3;
 
     public static List<String> tokenize(String arguments) {
-
         LinkedList<String> argList = new LinkedList<>();
         StringBuilder currArg = new StringBuilder();
         boolean escaped = false;

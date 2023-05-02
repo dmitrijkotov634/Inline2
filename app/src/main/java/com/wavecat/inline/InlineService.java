@@ -23,6 +23,8 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.preference.PreferenceManager;
 
+import com.wavecat.inline.preferences.PreferencesItem;
+
 import org.luaj.vm2.Globals;
 import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaString;
@@ -39,6 +41,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
@@ -53,7 +56,7 @@ public class InlineService extends AccessibilityService {
 
     private Globals environment;
 
-    private SharedPreferences preferences;
+    private SharedPreferences sharedPreferences;
 
     private Timer timer;
 
@@ -63,6 +66,8 @@ public class InlineService extends AccessibilityService {
     private final Set<LuaValue> commandFinders = new HashSet<>();
 
     private HashSet<String> defaultPath = new HashSet<>();
+
+    private final HashMap<String, LinkedHashSet<PreferencesItem>> preferences = new HashMap<>();
 
     public final static String PATH = "path";
     public final static String PATTERN = "pattern";
@@ -82,7 +87,7 @@ public class InlineService extends AccessibilityService {
 
     @Override
     protected void onServiceConnected() {
-        preferences = PreferenceManager.getDefaultSharedPreferences(this);
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
 
         defaultPath = new HashSet<>(
                 Arrays.asList(Environment.getExternalStorageDirectory().getPath() + "/inline",
@@ -123,6 +128,7 @@ public class InlineService extends AccessibilityService {
 
         commands.clear();
         watchers.clear();
+        preferences.clear();
         commandFinders.clear();
 
         try {
@@ -191,6 +197,25 @@ public class InlineService extends AccessibilityService {
             this.category = category;
         }
 
+        public String getCategory() {
+            return category;
+        }
+
+        public void registerPreferences(SharedPreferences sharedPreferences, LuaValue builder) {
+            LinkedHashSet<PreferencesItem> categoryPreferences = preferences.get(category);
+
+            if (categoryPreferences == null) {
+                categoryPreferences = new LinkedHashSet<>();
+                preferences.put(category, categoryPreferences);
+            }
+
+            categoryPreferences.add(new PreferencesItem(sharedPreferences, builder));
+        }
+
+        public void registerPreferences(LuaValue builder) {
+            registerPreferences(sharedPreferences, builder);
+        }
+
         public void registerCommand(String name, LuaValue callable, String description) {
             commands.put(name, new Command(category, callable.checkfunction(), description));
         }
@@ -225,7 +250,7 @@ public class InlineService extends AccessibilityService {
     }
 
     public void loadModules() throws IOException {
-        Set<String> unloaded = preferences.getStringSet(UNLOADED, new HashSet<>());
+        Set<String> unloaded = sharedPreferences.getStringSet(UNLOADED, new HashSet<>());
 
         AssetManager assets = getResources().getAssets();
 
@@ -241,7 +266,7 @@ public class InlineService extends AccessibilityService {
             environment.load(new String(buffer), path).call().call(CoerceJavaToLua.coerce(new Module(path)));
         }
 
-        Set<String> paths = preferences.getStringSet(PATH, defaultPath);
+        Set<String> paths = sharedPreferences.getStringSet(PATH, defaultPath);
 
         for (String path : paths) {
             if (unloaded.contains(path)) continue;
@@ -299,7 +324,7 @@ public class InlineService extends AccessibilityService {
         previousText = accessibilityNodeInfo.getText() == null ? "" : accessibilityNodeInfo.getText().toString();
 
         if (pattern == null)
-            pattern = Pattern.compile(preferences.getString(PATTERN, "(\\{([\\S]+)(?:\\s([\\S\\s]+?)\\}*)?\\}\\$)+"), Pattern.DOTALL);
+            pattern = Pattern.compile(sharedPreferences.getString(PATTERN, "(\\{([\\S]+)(?:\\s([\\S\\s]+?)\\}*)?\\}\\$)+"), Pattern.DOTALL);
 
         Matcher matcher = pattern.matcher(text);
 
@@ -361,8 +386,12 @@ public class InlineService extends AccessibilityService {
         return commandFinders;
     }
 
-    public SharedPreferences getDefaultSharedPreferences() {
+    public HashMap<String, LinkedHashSet<PreferencesItem>> getAllPreferences() {
         return preferences;
+    }
+
+    public SharedPreferences getDefaultSharedPreferences() {
+        return sharedPreferences;
     }
 
     public SharedPreferences getSharedPreferences(String name) {
@@ -411,8 +440,9 @@ public class InlineService extends AccessibilityService {
         return accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_COPY);
     }
 
-    public static void paste(AccessibilityNodeInfo accessibilityNodeInfo) {
-        accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_PASTE);
+    @SuppressWarnings("UnusedReturnValue")
+    public static boolean paste(AccessibilityNodeInfo accessibilityNodeInfo) {
+        return accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_PASTE);
     }
 
     public void toast(String text) {
