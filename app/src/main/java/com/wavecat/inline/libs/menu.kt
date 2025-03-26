@@ -1,202 +1,110 @@
-package com.wavecat.inline.libs;
+@file:Suppress("unused", "ClassName")
 
-import android.view.accessibility.AccessibilityNodeInfo;
+package com.wavecat.inline.libs
 
-import androidx.annotation.NonNull;
+import android.view.accessibility.AccessibilityNodeInfo
+import com.wavecat.inline.extensions.forEach
+import com.wavecat.inline.extensions.oneArgFunction
+import com.wavecat.inline.extensions.threeArgFunction
+import com.wavecat.inline.service.InlineService
+import com.wavecat.inline.service.InlineService.Companion.requireService
+import com.wavecat.inline.service.Query
+import org.luaj.vm2.LuaTable
+import org.luaj.vm2.LuaValue
+import org.luaj.vm2.lib.TwoArgFunction
+import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
-import com.wavecat.inline.InlineService;
-import com.wavecat.inline.Query;
+class menu : TwoArgFunction() {
+    private val menuMap = mutableMapOf<AccessibilityNodeInfo, Context>()
+    private val menuWatcher = oneArgFunction { arg ->
+        val accessibilityNodeInfo =
+            arg.checkuserdata(AccessibilityNodeInfo::class.java) as AccessibilityNodeInfo
 
-import org.luaj.vm2.LuaTable;
-import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.Varargs;
-import org.luaj.vm2.lib.OneArgFunction;
-import org.luaj.vm2.lib.ThreeArgFunction;
-import org.luaj.vm2.lib.TwoArgFunction;
-import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+        val context = menuMap[accessibilityNodeInfo] ?: return@oneArgFunction NIL
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+        val text = accessibilityNodeInfo.text
+        if (text == null || text.length != context.length) {
+            menuMap.remove(accessibilityNodeInfo)
 
-@SuppressWarnings("unused")
-public class menu extends TwoArgFunction {
-
-    private final HashMap<AccessibilityNodeInfo, Context> current = new HashMap<>();
-
-    @Override
-    public LuaValue call(LuaValue name, LuaValue env) {
-        LuaValue library = tableOf();
-
-        library.set("create", new Create());
-        library.set("current", CoerceJavaToLua.coerce(current));
-
-        env.set("menu", library);
-        env.get("package").get("loaded").set("menu", library);
-
-        InlineService context = InlineService.getInstance();
-
-        if (context == null)
-            error("service is not active");
-
-        context.getAllWatchers().put(new MenuWatcher(), InlineService.TYPE_SELECTION_CHANGED);
-
-        return library;
-    }
-
-    class MenuWatcher extends OneArgFunction {
-        public LuaValue call(LuaValue arg) {
-            AccessibilityNodeInfo accessibilityNodeInfo = (AccessibilityNodeInfo) arg.checkuserdata(AccessibilityNodeInfo.class);
-
-            Context context = current.get(accessibilityNodeInfo);
-
-            if (context == null)
-                return NIL;
-
-            if (accessibilityNodeInfo.getText() == null || accessibilityNodeInfo.getText().length() != context.length()) {
-                current.remove(accessibilityNodeInfo);
-
-                if (context.getCancelAction().isnil())
-                    context.getQuery().answer(null);
-                else
-                    context.getCancelAction().call(arg, CoerceJavaToLua.coerce(context.getQuery()));
-
-                return NIL;
+            if (context.cancelAction.isnil()) {
+                context.query.answer(null)
+            } else {
+                context.cancelAction.call(arg, CoerceJavaToLua.coerce(context.query))
             }
 
-            for (Part point : Objects.requireNonNull(context.getParts())) {
-                if (accessibilityNodeInfo.getTextSelectionStart() > point.getStart() &&
-                        accessibilityNodeInfo.getTextSelectionStart() < point.getEnd() &&
-                        accessibilityNodeInfo.getTextSelectionEnd() > point.getStart() &&
-                        accessibilityNodeInfo.getTextSelectionEnd() < point.getEnd()) {
-                    current.remove(accessibilityNodeInfo);
-                    point.getAction().call(arg, CoerceJavaToLua.coerce(context.getQuery()));
-                    break;
-                }
-            }
-
-            return NIL;
+            return@oneArgFunction NIL
         }
+
+        context.parts.firstOrNull { part ->
+            accessibilityNodeInfo.textSelectionStart in (part.start + 1) until part.end &&
+                    accessibilityNodeInfo.textSelectionEnd in (part.start + 1) until part.end
+        }?.let { part ->
+            menuMap.remove(accessibilityNodeInfo)
+            part.action.call(arg, CoerceJavaToLua.coerce(context.query))
+        }
+
+        NIL
     }
 
-    static class Context {
+    override fun call(name: LuaValue, env: LuaValue): LuaValue {
+        val library: LuaValue = tableOf()
 
-        private final Query query;
-        private final Set<Part> parts;
-        private final LuaValue cancelAction;
+        library["create"] = threeArgFunction { arg1, arg2, arg3 ->
+            val result = StringBuilder()
+            val query = arg1.checkuserdata(Query::class.java) as Query
+            val parts = hashSetOf<Part>()
 
-        private final int length;
-
-        public Context(Query query, Set<Part> parts, LuaValue cancelAction, int length) {
-            this.query = query;
-            this.parts = parts;
-            this.cancelAction = cancelAction;
-            this.length = length;
-        }
-
-        public Query getQuery() {
-            return query;
-        }
-
-        public Set<Part> getParts() {
-            return parts;
-        }
-
-        public int length() {
-            return length;
-        }
-
-        public LuaValue getCancelAction() {
-            return cancelAction;
-        }
-
-        @NonNull
-        @Override
-        public String toString() {
-            return "Context{" +
-                    "query=" + query +
-                    ", parts=" + parts +
-                    ", cancelAction=" + cancelAction +
-                    ", length=" + length +
-                    '}';
-        }
-    }
-
-    static class Part {
-
-        private final int start;
-        private final int end;
-
-        private final LuaValue action;
-
-        public Part(int start, int end, LuaValue action) {
-            this.start = start;
-            this.end = end;
-            this.action = action;
-        }
-
-        public int getStart() {
-            return start;
-        }
-
-        public int getEnd() {
-            return end;
-        }
-
-        public LuaValue getAction() {
-            return action;
-        }
-
-        @NonNull
-        @Override
-        public String toString() {
-            return "Part{" +
-                    "start=" + start +
-                    ", end=" + end +
-                    ", action=" + action +
-                    '}';
-        }
-    }
-
-    class Create extends ThreeArgFunction {
-        @Override
-        public LuaValue call(LuaValue arg1, LuaValue arg2, LuaValue arg3) {
-            StringBuilder result = new StringBuilder();
-
-            Query query = (Query) arg1.checkuserdata(Query.class);
-            HashSet<Part> parts = new HashSet<>();
-
-            LuaValue k = LuaValue.NIL;
-            while (true) {
-                Varargs n = arg2.next(k);
-                if ((k = n.arg1()).isnil())
-                    break;
-                LuaValue v = n.arg(2);
-                if (v instanceof LuaTable) {
-                    String caption = v.get("caption").tojstring();
-                    parts.add(new Part(
-                            query.getStartPosition() + result.length(),
-                            query.getStartPosition() + result.length() + caption.length(),
-                            v.get("action")));
-                    result.append(caption);
+            arg2.checktable().forEach { _, v ->
+                if (v is LuaTable) {
+                    val caption = v["caption"].tojstring()
+                    parts.add(
+                        Part(
+                            start = query.startPosition + result.length,
+                            end = query.startPosition + result.length + caption.length,
+                            action = v["action"]
+                        )
+                    )
+                    result.append(caption)
                 } else {
-                    result.append(v.tojstring());
+                    result.append(v.tojstring())
                 }
             }
 
-            query.answer(result.toString());
+            query.answer(result.toString())
 
-            Context context = new Context(
-                    query,
-                    parts,
-                    arg3,
-                    query.getText().length());
+            val context = Context(
+                query,
+                parts,
+                arg3,
+                query.text.length
+            )
 
-            current.put(query.getAccessibilityNodeInfo(), context);
-            return CoerceJavaToLua.coerce(context);
+            menuMap[query.accessibilityNodeInfo] = context
+            CoerceJavaToLua.coerce(context)
         }
+
+        library["map"] = CoerceJavaToLua.coerce(menuMap)
+
+        env["menu"] = library
+        env["package"]["loaded"]["menu"] = library
+
+        requireService().allWatchers[menuWatcher] = InlineService.TYPE_SELECTION_CHANGED
+
+        return library
     }
+
+    data class Context(
+        val query: Query,
+        val parts: Set<Part>,
+        val cancelAction: LuaValue,
+        val length: Int,
+    )
+
+    data class Part(
+        val start: Int,
+        val end: Int,
+        val action: LuaValue,
+    )
 }
 
 

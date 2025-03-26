@@ -1,100 +1,80 @@
-package com.wavecat.inline.libs;
+@file:Suppress("ClassName", "unused")
 
-import com.wavecat.inline.Query;
-import com.wavecat.inline.utils.ArgumentTokenizer;
+package com.wavecat.inline.libs
 
-import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.lib.OneArgFunction;
-import org.luaj.vm2.lib.ThreeArgFunction;
-import org.luaj.vm2.lib.TwoArgFunction;
-import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+import com.wavecat.inline.service.Query
+import com.wavecat.inline.extensions.oneArgFunction
+import com.wavecat.inline.extensions.threeArgFunction
+import com.wavecat.inline.extensions.twoArgFunction
+import com.wavecat.inline.utils.ArgumentTokenizer
+import org.luaj.vm2.LuaValue
+import org.luaj.vm2.lib.TwoArgFunction
+import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
-@SuppressWarnings("unused")
-public class utils extends TwoArgFunction {
-    @Override
-    public LuaValue call(LuaValue name, LuaValue env) {
-        LuaValue library = tableOf();
+class utils : TwoArgFunction() {
+    override fun call(name: LuaValue, env: LuaValue): LuaValue {
+        val library: LuaValue = tableOf()
 
-        library.set("split", new Split());
-        library.set("escape", new Escape());
-        library.set("parseArgs", new ParseArgs());
-        library.set("command", new Command());
-        library.set("hasArgs", new HasArgs());
+        library["split"] = threeArgFunction { string: LuaValue, regex: LuaValue, limit: LuaValue ->
+            val str = string.checkjstring()
+            val regexStr = regex.checkjstring().toRegex()
+            val limitVal = limit.optint(0)
 
-        env.set("utils", library);
-        env.get("package").get("loaded").set("utils", library);
-
-        return library;
-    }
-
-    static class Split extends ThreeArgFunction {
-        public LuaValue call(LuaValue string, LuaValue regex, LuaValue limit) {
-            return CoerceJavaToLua.coerce(limit.isnil()
-                    ? string.checkjstring().split(regex.checkjstring())
-                    : string.checkjstring().split(regex.checkjstring(), limit.checkint()));
+            CoerceJavaToLua.coerce(
+                str.split(regexStr, limitVal).toTypedArray()
+            )
         }
-    }
 
-    static class Escape extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue string) {
-            return valueOf(string.checkjstring().replaceAll("[().%+\\-\\*\\?\\[^$\\]]", "%$0"));
+        library["escape"] = oneArgFunction { string ->
+            @Suppress("RegExpRedundantEscape")
+            valueOf(string.checkjstring().replace("[().%+\\-\\*\\?\\[^$\\]]".toRegex(), "%$0"))
         }
-    }
 
-    static class ParseArgs extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue string) {
-            return CoerceJavaToLua.coerce(ArgumentTokenizer.tokenize(string.checkjstring()).toArray());
+        library["parseArgs"] = oneArgFunction { string ->
+            CoerceJavaToLua.coerce(ArgumentTokenizer.tokenize(string.checkjstring()).toTypedArray())
         }
-    }
 
-    static class Command extends ThreeArgFunction {
-        @Override
-        public LuaValue call(LuaValue value, LuaValue count, LuaValue errorValue) {
-            value.checkfunction();
-            count.checkint();
-            return new TwoArgFunction() {
-                @Override
-                public LuaValue call(LuaValue input, LuaValue arg2) {
-                    Query query = ((Query) arg2.checkuserdata(Query.class));
+        library["command"] = threeArgFunction { value, count, errorValue ->
+            value.checkfunction()
+            count.checkint()
 
-                    Object[] args = ArgumentTokenizer.tokenize(query.getArgs()).toArray();
+            twoArgFunction { input, arg2 ->
+                val query = (arg2.checkuserdata(Query::class.java) as Query)
 
-                    if (args.length == count.toint())
-                        return value.call(input, arg2, CoerceJavaToLua.coerce(args));
+                val args: Array<Any> = ArgumentTokenizer.tokenize(query.args).toTypedArray()
 
+                if (args.size == count.toint())
+                    return@twoArgFunction value.call(input, arg2, CoerceJavaToLua.coerce(args))
+
+                if (errorValue.isfunction())
+                    return@twoArgFunction errorValue.call(input, arg2)
+
+                query.answer("Wrong arguments")
+                NIL
+            }
+        }
+
+        library["hasArgs"] = twoArgFunction { value, errorValue ->
+            value.checkfunction()
+
+            twoArgFunction wrapped@{ input, arg2 ->
+                val query = (arg2.checkuserdata(Query::class.java) as Query)
+
+                if (query.args.isEmpty()) {
                     if (errorValue.isfunction())
-                        return errorValue.call(input, arg2);
+                        return@wrapped errorValue.call(input, arg2)
 
-                    query.answer("Wrong arguments");
-                    return NIL;
+                    query.answer("Empty argument")
+                    return@wrapped NIL
                 }
-            };
+
+                value.call(input, arg2)
+            }
         }
+
+        env["utils"] = library
+        env["package"]["loaded"]["utils"] = library
+
+        return library
     }
-
-    static class HasArgs extends TwoArgFunction {
-        @Override
-        public LuaValue call(LuaValue value, LuaValue errorValue) {
-            value.checkfunction();
-            return new TwoArgFunction() {
-                @Override
-                public LuaValue call(LuaValue input, LuaValue arg2) {
-                    Query query = ((Query) arg2.checkuserdata(Query.class));
-
-                    if (query.getArgs().isEmpty()) {
-                        if (errorValue.isfunction())
-                            return errorValue.call(input, arg2);
-
-                        query.answer("Empty argument");
-                        return NIL;
-                    }
-
-                    return value.call(input, arg2);
-                }
-            };
-        }
-    }
-
 }

@@ -1,41 +1,45 @@
-require "com.wavecat.inline.libs.utils"
+require "utils"
 
 local function help(_, query)
     local categories = {}
     local iterator = inline:getAllCommands():entrySet():iterator()
+
     while iterator:hasNext() do
         local entry = iterator:next()
-        local category = entry:getValue():getCategory()
-        if not category then
-            category = "Other"
-        end
+        local cmd_name = entry:getKey()
+        local cmd_obj = entry:getValue()
+        local category = cmd_obj:getCategory() or "Other"
+
         if not categories[category] then
             categories[category] = {}
         end
-        categories[category][entry:getKey()] = entry:getValue():getDescription()
+
+        categories[category][cmd_name] = cmd_obj:getDescription()
     end
-    local result = ""
-    if query:getArgs() == "" then
-        result = result .. "Help for Inline\nFor more help on how to use a command, type help <category name>\n"
-        for name, category in pairs(categories) do
-            result = result .. "• " .. name .. ": "
-            for cname, _ in pairs(category) do
-                result = result .. cname .. ", "
+
+    local args = query:getArgs()
+    if args == "" then
+        local result = { "Help for Inline\nFor more help, type help <category>" }
+        for category, commands in pairs(categories) do
+            local cmd_list = {}
+            for cmd_name in pairs(commands) do
+                table.insert(cmd_list, cmd_name)
             end
-            result = result:sub(1, #result - 2) .. "\n"
+            table.insert(result, "• " .. category .. ": " .. table.concat(cmd_list, ", "))
         end
+        query:answer(table.concat(result, "\n"))
     else
-        local category = categories[query:getArgs()]
+        local category = categories[args]
         if category then
-            result = "Help for " .. query:getArgs() .. ": \n"
-            for name, description in pairs(category) do
-                result = result .. "• " .. name .. (description == "" and "" or " : " .. description) .. "\n"
+            local result = { "Help for " .. args .. ":" }
+            for name, desc in pairs(category) do
+                table.insert(result, "• " .. name .. (desc ~= "" and (" : " .. desc) or ""))
             end
+            query:answer(table.concat(result, "\n"))
         else
-            result = "Category not found"
+            query:answer("Category not found")
         end
     end
-    query:answer(result)
 end
 
 local function reload(_, query)

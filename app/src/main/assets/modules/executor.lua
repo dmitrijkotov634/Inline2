@@ -1,16 +1,14 @@
-require "com.wavecat.inline.libs.utils"
+require "utils"
 
+local preferences = inline:getDefaultSharedPreferences()
 local warningMessage = "Warning!!! This command executes any Lua code. Don't use if you don't know what it is. Try again after reading this warning"
 
 local function checkWarning(query)
-    local preferences = inline:getDefaultSharedPreferences()
-
-    if not preferences:getBoolean("executor", false) then
+    if not preferences:getBoolean("executor_warning", false) then
         query:answer(warningMessage)
-        preferences:edit():putBoolean("executor", true):apply()
+        preferences:edit():putBoolean("executor_warning", true):apply()
         return true
     end
-
     return false
 end
 
@@ -20,7 +18,12 @@ local function eval(_, query)
     end
 
     local chunk = load("return " .. query:getArgs())
-    query:answer(tostring(chunk()))
+
+    if preferences:getBoolean("executor_print_code", true) then
+        query:answer(query:getArgs() .. " = " .. tostring(chunk()))
+    else
+        query:answer(tostring(chunk()))
+    end
 end
 
 local function exec(_, query)
@@ -42,7 +45,9 @@ local function getPreferences(prefs)
 
     return {
         warningMessage,
-        prefs.checkBox("executor", "Don't show warning"),
+        prefs.checkBox("executor_warning", "Don't show warning"),
+        prefs.checkBox("executor_print_code", "Print code before eval")
+             :setDefault(true),
         codePlayground,
         codeResult,
         prefs.button("Execute", function()

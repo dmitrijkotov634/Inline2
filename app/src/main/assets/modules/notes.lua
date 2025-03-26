@@ -1,4 +1,4 @@
-require "com.wavecat.inline.libs.menu"
+require "menu"
 
 local preferences = inline:getSharedPreferences "notes"
 
@@ -32,7 +32,9 @@ local function notes(_, query)
         },
         " List of notes:\n\n"
     }
+
     local iterator = preferences:getAll():entrySet():iterator()
+
     while iterator:hasNext() do
         local entry = iterator:next()
         result[#result + 1] = {
@@ -53,7 +55,9 @@ local function notes(_, query)
                 }, notes)
             end
         }
+
         result[#result + 1] = " "
+
         result[#result + 1] = {
             caption = "[>]",
             action = function(_, q)
@@ -70,8 +74,10 @@ local function notes(_, query)
                 }, notes)
             end
         }
+
         result[#result + 1] = " " .. entry:getKey() .. "\n"
     end
+
     menu.create(query, result, notes)
 end
 

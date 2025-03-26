@@ -1,10 +1,10 @@
-require "com.wavecat.inline.libs.utils"
-require "com.wavecat.inline.libs.menu"
+require "utils"
+require "menu"
 
 local preferences = inline:getSharedPreferences "binder2"
 local enabled = inline:getDefaultSharedPreferences():getBoolean("binder", true)
 
-local Query = luajava.bindClass "com.wavecat.inline.Query"
+local Query = luajava.bindClass "com.wavecat.inline.service.Query"
 
 local function bind(_, query)
     local args = utils.split(query:getArgs(), " ", 2)
@@ -50,18 +50,18 @@ local function binder(input)
             while iterator:hasNext() do
                 local entry = iterator:next()
                 text = text:gsub(
-                        entry:getKey(),
-                        function(expression)
-                            local data = utils.split(entry:getValue(), " ", 2)
-                            local command = inline:getAllCommands():get(data[1])
-                            if not command then
-                                return nil
-                            end
-                            local callable = command:getCallable()
-                            local query = Query.new(input, input:getText(), expression, data[2] or "")
-                            callable(input, query)
-                            return query:getText()
+                    entry:getKey(),
+                    function(expression)
+                        local data = utils.split(entry:getValue(), " ", 2)
+                        local command = inline:getAllCommands():get(data[1])
+                        if not command then
+                            return nil
                         end
+                        local callable = command:getCallable()
+                        local query = Query.new(input, input:getText(), expression, data[2] or "")
+                        callable(input, query)
+                        return query:getText()
+                    end
                 )
             end
         end
@@ -112,7 +112,7 @@ local function getPreferences(prefs)
             prefs:create("Unbind All?", function()
                 return {
                     "This button will erase all your binds",
-                    prefs.row({
+                    {
                         prefs.button("Yes", function()
                             preferences:edit():clear():apply()
                             prefs:cancel()
@@ -121,7 +121,7 @@ local function getPreferences(prefs)
                         prefs.button("No", function()
                             prefs:cancel()
                         end)
-                    })
+                    }
                 }
             end)
         end)

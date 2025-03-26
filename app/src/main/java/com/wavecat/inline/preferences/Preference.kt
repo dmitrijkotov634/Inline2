@@ -1,9 +1,11 @@
-package com.wavecat.inline.preferences;
+package com.wavecat.inline.preferences
 
-import android.content.SharedPreferences;
-import android.view.View;
+import android.content.SharedPreferences
+import android.view.View
 
-public interface Preference {
-    View getView(SharedPreferences preferences);
+interface Preference {
+    fun getView(preferences: SharedPreferences?): View
+
+    fun setWindowFocusListener(requestFocus: () -> Unit) {}
 }
 

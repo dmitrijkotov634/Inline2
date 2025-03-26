@@ -1,5 +1,5 @@
-require "com.wavecat.inline.libs.http"
-require "com.wavecat.inline.libs.colorama"
+require "http"
+require "colorama"
 
 local preferences = inline:getDefaultSharedPreferences()
 
@@ -21,7 +21,7 @@ local function files(_, query)
     local result = colorama.bold("Files in /") .. query:getArgs() .. ":" .. colorama.newline
     for i = 1, #list do
         result = result .. "• " .. colorama.font(list[i]:getName(),
-                list[i]:isDirectory() and "#FFBA00" or "#FF7373") .. colorama.newline
+            list[i]:isDirectory() and "#FFBA00" or "#FF7373") .. colorama.newline
     end
     query:answer(result)
 end
@@ -35,26 +35,26 @@ local function load_(_, query)
     query:answer(colorama.font("Loading...", "#8AB4F8"))
 
     http.call(
-            request,
-            function(_, _, string)
-                local chunk, err = load(string)
+        request,
+        function(_, _, string)
+            local chunk, err = load(string)
 
-                if not chunk then
-                    query:answer(colorama.font("Unable to load module: " .. err, "#FF7373"))
-                    return
-                end
-
-                local filename = query:getArgs():sub(query:getArgs():match("^.*()/") + 1, #query:getArgs())
-                local file = io.open(dirPath .. filename, "w+")
-                file:write(string)
-                file:close()
-
-                query:answer(colorama.font("Module installed: " .. filename, "#D7FFD5"))
-                inline:createEnvironment()
-            end,
-            function(_, exception)
-                query:answer(colorama.font("Unable to download module: " .. exception:getMessage(), "#FF7373"))
+            if not chunk then
+                query:answer(colorama.font("Unable to load module: " .. err, "#FF7373"))
+                return
             end
+
+            local filename = query:getArgs():sub(query:getArgs():match("^.*()/") + 1, #query:getArgs())
+            local file = io.open(dirPath .. filename, "w+")
+            file:write(string)
+            file:close()
+
+            query:answer(colorama.font("Module installed: " .. filename, "#D7FFD5"))
+            inline:createEnvironment()
+        end,
+        function(_, exception)
+            query:answer(colorama.font("Unable to download module: " .. exception:getMessage(), "#FF7373"))
+        end
     )
 end
 

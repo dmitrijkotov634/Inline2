@@ -1,193 +1,127 @@
-package com.wavecat.inline.libs;
+@file:Suppress("ClassName", "unused")
 
-import android.os.Handler;
-import android.os.Looper;
+package com.wavecat.inline.libs
 
-import androidx.annotation.NonNull;
+import android.os.Handler
+import android.os.Looper
+import com.wavecat.inline.extensions.forEach
+import com.wavecat.inline.extensions.oneArgFunction
+import com.wavecat.inline.extensions.threeArgFunction
+import com.wavecat.inline.extensions.twoArgFunction
+import com.wavecat.inline.extensions.zeroArgFunction
+import okhttp3.Callback
+import okhttp3.FormBody
+import okhttp3.Headers
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import org.luaj.vm2.LuaValue
+import org.luaj.vm2.lib.TwoArgFunction
+import org.luaj.vm2.lib.jse.CoerceJavaToLua
+import java.io.IOException
 
-import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.Varargs;
-import org.luaj.vm2.lib.OneArgFunction;
-import org.luaj.vm2.lib.ThreeArgFunction;
-import org.luaj.vm2.lib.TwoArgFunction;
-import org.luaj.vm2.lib.ZeroArgFunction;
-import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+class http : TwoArgFunction() {
+    override fun call(name: LuaValue, env: LuaValue): LuaValue {
+        val library = newInstance(client)
 
-import java.io.IOException;
-import java.util.Objects;
+        env["http"] = library
+        env["package"]["loaded"]["http"] = library
 
-import okhttp3.Callback;
-import okhttp3.FormBody;
-import okhttp3.Headers;
-import okhttp3.HttpUrl;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
-
-@SuppressWarnings("unused")
-public class http extends TwoArgFunction {
-
-    private static final OkHttpClient client = new OkHttpClient();
-
-    @Override
-    public LuaValue call(LuaValue name, LuaValue env) {
-        LuaValue library = getLibraryTable(client);
-
-        env.set("http", library);
-        env.get("package").get("loaded").set("http", library);
-
-        return library;
+        return library
     }
 
-    private static LuaValue getLibraryTable(OkHttpClient client) {
-        LuaValue library = tableOf();
+    companion object {
+        private val client = OkHttpClient()
 
-        library.set("Request", CoerceJavaToLua.coerce(Request.class));
-        library.set("buildUrl", new BuildUrl());
-        library.set("buildFormBody", new BuildFormBody());
-        library.set("buildMultipartBody", new BuildMultipartBody());
-        library.set("buildBody", new BuildBody());
-        library.set("buildHeaders", new BuildHeaders());
-        library.set("newBuilder", new NewBuilder(client));
-        library.set("call", new Call(client));
+        private fun newInstance(client: OkHttpClient): LuaValue = tableOf().apply {
+            this["Request"] = CoerceJavaToLua.coerce(Request::class.java)
 
-        LuaValue metatable = tableOf();
-        metatable.set(CALL, new GetHttpLibrary());
-        library.setmetatable(metatable);
+            this["FormBodyBuilder"] = CoerceJavaToLua.coerce(FormBody.Builder::class.java)
+            this["MultipartBodyBuilder"] = CoerceJavaToLua.coerce(MultipartBody.Builder::class.java)
+            this["HeadersBuilder"] = CoerceJavaToLua.coerce(Headers.Builder::class.java)
 
-        return library;
-    }
+            this["buildUrl"] = twoArgFunction { url, table ->
+                val httpBuilder = url.checkjstring().toHttpUrl().newBuilder()
 
-    static class GetHttpLibrary extends TwoArgFunction {
-        @Override
-        public LuaValue call(LuaValue table, LuaValue client) {
-            return getLibraryTable((OkHttpClient) client.checkuserdata(OkHttpClient.class));
-        }
-    }
-
-    static class NewBuilder extends ZeroArgFunction {
-        private final OkHttpClient client;
-
-        public NewBuilder(OkHttpClient client) {
-            this.client = client;
-        }
-
-        @Override
-        public LuaValue call() {
-            return CoerceJavaToLua.coerce(client.newBuilder());
-        }
-    }
-
-    static class BuildUrl extends TwoArgFunction {
-        @Override
-        public LuaValue call(LuaValue url, LuaValue table) {
-            HttpUrl.Builder httpBuilder = Objects.requireNonNull(HttpUrl.parse(url.checkjstring())).newBuilder();
-
-            LuaValue k = NIL;
-            while (true) {
-                Varargs n = table.next(k);
-                if ((k = n.arg1()).isnil())
-                    break;
-                httpBuilder.addQueryParameter(k.checkjstring(), n.arg(2).tojstring());
-            }
-
-            return CoerceJavaToLua.coerce(httpBuilder.build());
-        }
-    }
-
-    static class BuildFormBody extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue data) {
-            FormBody.Builder builder = new FormBody.Builder();
-
-            LuaValue k = NIL;
-            while (true) {
-                Varargs n = data.next(k);
-                if ((k = n.arg1()).isnil())
-                    break;
-                builder.add(k.checkjstring(), n.arg(2).tojstring());
-            }
-
-            return CoerceJavaToLua.coerce(builder.build());
-        }
-    }
-
-    static class BuildMultipartBody extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue data) {
-            MultipartBody.Builder builder = new MultipartBody.Builder();
-
-            LuaValue k = NIL;
-            while (true) {
-                Varargs n = data.next(k);
-                if ((k = n.arg1()).isnil())
-                    break;
-                builder.addFormDataPart(k.checkjstring(), n.arg(2).tojstring());
-            }
-
-            return CoerceJavaToLua.coerce(builder.build());
-        }
-    }
-
-    static class BuildBody extends TwoArgFunction {
-        @Override
-        public LuaValue call(LuaValue data, LuaValue mediaType) {
-            return CoerceJavaToLua.coerce(
-                    RequestBody.create(data.checkjstring(), MediaType.parse(mediaType.checkjstring())));
-        }
-    }
-
-    static class BuildHeaders extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue table) {
-            Headers.Builder builder = new Headers.Builder();
-
-            LuaValue k = NIL;
-            while (true) {
-                Varargs n = table.next(k);
-                if ((k = n.arg1()).isnil())
-                    break;
-                builder.add(k.checkjstring(), n.arg(2).tojstring());
-            }
-
-            return CoerceJavaToLua.coerce(builder.build());
-        }
-    }
-
-    static class Call extends ThreeArgFunction {
-
-        private final OkHttpClient client;
-
-        public Call(OkHttpClient client) {
-            this.client = client;
-        }
-
-        @Override
-        public LuaValue call(LuaValue request, LuaValue onResponse, LuaValue onFailure) {
-            Handler handler = new Handler(Looper.getMainLooper());
-
-            client.newCall((Request) request.checkuserdata(Request.class)).enqueue(new Callback() {
-                @Override
-                public void onFailure(@NonNull okhttp3.Call call, @NonNull IOException e) {
-                    if (!onFailure.isnil())
-                        handler.post(() -> onFailure.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(e)));
+                table.forEach { key, value ->
+                    httpBuilder.addQueryParameter(key.checkjstring(), value.tojstring())
                 }
 
-                @Override
-                public void onResponse(@NonNull okhttp3.Call call, @NonNull Response response) throws IOException {
-                    ResponseBody responseBody = response.body();
-                    if (!onResponse.isnil()) {
-                        LuaValue bytes = valueOf(responseBody == null ? new byte[]{} : responseBody.bytes());
-                        handler.post(() -> onResponse.call(CoerceJavaToLua.coerce(call), CoerceJavaToLua.coerce(response), bytes));
-                    }
-                }
-            });
+                CoerceJavaToLua.coerce(httpBuilder.build())
+            }
 
-            return NIL;
+            this["buildFormBody"] = oneArgFunction { data ->
+                CoerceJavaToLua.coerce(
+                    FormBody.Builder().apply {
+                        data.forEach { key, value -> add(key.checkjstring(), value.tojstring()) }
+                    }.build()
+                )
+            }
+
+            this["buildMultipartBody"] = oneArgFunction { data ->
+                CoerceJavaToLua.coerce(
+                    MultipartBody.Builder().apply {
+                        data.forEach { key, value -> addFormDataPart(key.checkjstring(), value.tojstring()) }
+                    }.build()
+                )
+            }
+
+            this["buildBody"] = twoArgFunction { data, mediaType ->
+                CoerceJavaToLua.coerce(
+                    data.checkjstring().toRequestBody(mediaType.checkjstring().toMediaType())
+                )
+            }
+
+            this["buildHeaders"] = oneArgFunction { table ->
+                CoerceJavaToLua.coerce(
+                    Headers.Builder().apply {
+                        table.forEach { key, value -> add(key.checkjstring(), value.tojstring()) }
+                    }.build()
+                )
+            }
+
+            this["newBuilder"] = zeroArgFunction { CoerceJavaToLua.coerce(client.newBuilder()) }
+
+            this["call"] = threeArgFunction { request, onResponse, onFailure ->
+                val handler = Handler(Looper.getMainLooper())
+
+                client.newCall(request.checkuserdata(Request::class.java) as Request)
+                    .enqueue(object : Callback {
+                        override fun onFailure(call: okhttp3.Call, e: IOException) {
+                            if (!onFailure.isnil())
+                                handler.post {
+                                    onFailure.call(
+                                        CoerceJavaToLua.coerce(call),
+                                        CoerceJavaToLua.coerce(e)
+                                    )
+                                }
+                        }
+
+                        override fun onResponse(call: okhttp3.Call, response: Response) {
+                            val bytes: LuaValue = valueOf(response.body?.bytes() ?: byteArrayOf())
+
+                            if (!onResponse.isnil()) handler.post {
+                                onResponse.call(
+                                    CoerceJavaToLua.coerce(call),
+                                    CoerceJavaToLua.coerce(response),
+                                    bytes
+                                )
+                            }
+                        }
+                    })
+
+                NIL
+            }
+
+            this.setmetatable(tableOf().apply {
+                this[CALL] = twoArgFunction { _, client ->
+                    newInstance(client.checkuserdata(OkHttpClient::class.java) as OkHttpClient)
+                }
+            })
         }
     }
 }

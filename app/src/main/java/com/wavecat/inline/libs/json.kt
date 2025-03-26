@@ -1,163 +1,96 @@
-package com.wavecat.inline.libs;
+@file:Suppress("ClassName", "unused")
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONTokener;
-import org.luaj.vm2.LuaBoolean;
-import org.luaj.vm2.LuaDouble;
-import org.luaj.vm2.LuaInteger;
-import org.luaj.vm2.LuaString;
-import org.luaj.vm2.LuaTable;
-import org.luaj.vm2.LuaUserdata;
-import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.Varargs;
-import org.luaj.vm2.lib.OneArgFunction;
-import org.luaj.vm2.lib.TwoArgFunction;
-import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+package com.wavecat.inline.libs
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import com.wavecat.inline.extensions.forEach
+import com.wavecat.inline.extensions.oneArgFunction
+import org.json.JSONArray
+import org.json.JSONObject
+import org.json.JSONTokener
+import org.luaj.vm2.LuaBoolean
+import org.luaj.vm2.LuaDouble
+import org.luaj.vm2.LuaInteger
+import org.luaj.vm2.LuaString
+import org.luaj.vm2.LuaTable
+import org.luaj.vm2.LuaUserdata
+import org.luaj.vm2.LuaValue
+import org.luaj.vm2.lib.TwoArgFunction
+import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
-@SuppressWarnings("unused")
-public class json extends TwoArgFunction {
+class json : TwoArgFunction() {
+    override fun call(name: LuaValue, env: LuaValue): LuaValue {
+        val library: LuaValue = tableOf()
 
-    private static final LuaValue Null = new LuaUserdata(new Object());
+        library["dump"] = oneArgFunction { table ->
+            valueOf(dumpTable(table.checktable(), HashSet()).toString())
+        }
 
-    @Override
-    public LuaValue call(LuaValue name, LuaValue env) {
-        LuaValue library = tableOf();
+        library["dumpObject"] = oneArgFunction { table ->
+            CoerceJavaToLua.coerce(dumpTable(table.checktable(), HashSet()))
+        }
 
-        library.set("dump", new Dump());
-        library.set("dumpObject", new DumpObject());
-        library.set("load", new Load());
-        library.set("loadObject", new LoadObject());
-        library.set("emptyObject", new LuaUserdata(new JSONObject()));
-        library.set("null", Null);
+        library["load"] = oneArgFunction { jsonString ->
+            load(JSONTokener(jsonString.checkjstring()).nextValue())
+        }
 
-        env.set("json", library);
-        env.get("package").get("loaded").set("json", library);
+        library["loadObject"] = oneArgFunction { jsonObject ->
+            load(jsonObject.touserdata())
+        }
 
-        return library;
+        library["emptyObject"] = LuaUserdata(JSONObject())
+        library["null"] = Null
+
+        env["json"] = library
+        env["package"]["loaded"]["json"] = library
+
+        return library
     }
 
-    private static Object castValue(LuaValue value, Set<LuaValue> stack) throws JSONException {
-        if (value.isuserdata(JSONObject.class) || value.isuserdata(JSONArray.class))
-            return value.touserdata(Object.class);
-        else if (value.equals(Null))
-            return JSONObject.NULL;
-        else if (value instanceof LuaBoolean)
-            return value.toboolean();
-        else if (value instanceof LuaInteger)
-            return value.toint();
-        else if (value instanceof LuaDouble)
-            return value.todouble();
-        else if (value instanceof LuaString)
-            return value.tojstring();
-        else if (value instanceof LuaTable)
-            return dumpTable(value, stack);
-        else {
-            error("unable to serialize " + value.typename());
-            return null;
-        }
-    }
+    companion object {
+        private val Null: LuaValue = LuaUserdata(Any())
 
-    private static Object dumpTable(LuaValue value, Set<LuaValue> stack) throws JSONException {
-        if (stack.contains(value))
-            error("circular reference");
-        stack.add(value);
-        LuaValue first = LuaValue.NIL;
-        if ((first = value.next(first).arg1()).isnil()) {
-            return new JSONArray();
-        }
-        if (first.isnumber()) {
-            JSONArray jsonArray = new JSONArray();
-            LuaValue k = LuaValue.NIL;
-            while (true) {
-                Varargs n = value.next(k);
-                if ((k = n.arg1()).isnil())
-                    break;
-                jsonArray.put(castValue(n.arg(2), stack));
-            }
-            return jsonArray;
-        } else {
-            JSONObject jsonObject = new JSONObject();
-            LuaValue k = LuaValue.NIL;
-            while (true) {
-                Varargs n = value.next(k);
-                if ((k = n.arg1()).isnil())
-                    break;
-                jsonObject.put(k.checkjstring(), castValue(n.arg(2), stack));
-            }
-            return jsonObject;
-        }
-    }
+        private fun castValue(value: LuaValue, stack: MutableSet<LuaValue>): Any? = when {
+            value.isuserdata(JSONObject::class.java) || value.isuserdata(JSONArray::class.java) ->
+                value.touserdata(Any::class.java)
 
-    static class DumpObject extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue table) {
-            try {
-                return CoerceJavaToLua.coerce(dumpTable(table.checktable(), new HashSet<>()));
-            } catch (JSONException e) {
-                error(e.getMessage());
-            }
-            return null;
-        }
-    }
+            value == Null -> JSONObject.NULL
+            value is LuaBoolean -> value.toboolean()
+            value is LuaInteger -> value.toint()
+            value is LuaDouble -> value.todouble()
+            value is LuaString -> value.tojstring()
+            value is LuaTable -> dumpTable(value, stack)
 
-    static class Dump extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue table) {
-            try {
-                return valueOf(dumpTable(table.checktable(), new HashSet<>()).toString());
-            } catch (JSONException e) {
-                error(e.getMessage());
-            }
-            return null;
+            else -> error("Unable to serialize ${value.typename()}")
         }
-    }
 
-    private static LuaValue load(Object object) throws JSONException {
-        LuaValue value;
-        if (object instanceof JSONObject) {
-            value = new LuaTable();
-            JSONObject jsonObject = (JSONObject) object;
-            for (Iterator<String> it = jsonObject.keys(); it.hasNext(); ) {
-                String key = it.next();
-                value.set(key, load(jsonObject.get(key)));
+        private fun dumpTable(value: LuaValue, stack: MutableSet<LuaValue>): Any {
+            if (!stack.add(value))
+                error("circular reference")
+
+            val firstKey = value.next(LuaValue.NIL).arg1()
+            return if (firstKey.isnumber()) {
+                JSONArray().apply {
+                    value.forEach { _, v -> put(castValue(v, stack)) }
+                }
+            } else {
+                JSONObject().apply {
+                    value.forEach { k, v -> put(k.checkjstring(), castValue(v, stack)) }
+                }
             }
-        } else if (object instanceof JSONArray) {
-            value = new LuaTable();
-            JSONArray jsonArray = (JSONArray) object;
-            for (int i = 0; i < jsonArray.length(); i++) {
-                value.set(i + 1, load(jsonArray.get(i)));
-            }
-        } else {
-            value = CoerceJavaToLua.coerce(object);
         }
-        return value;
-    }
 
-    static class LoadObject extends OneArgFunction {
-        public LuaValue call(LuaValue jsonObject) {
-            try {
-                return json.load(jsonObject.touserdata());
-            } catch (JSONException e) {
-                error(e.getMessage());
+        private fun load(kobject: Any): LuaValue = when (kobject) {
+            is JSONObject -> LuaTable().apply {
+                kobject.keys().forEach { key -> this[key] = load(kobject[key]) }
             }
-            return null;
-        }
-    }
 
-    static class Load extends OneArgFunction {
-        public LuaValue call(LuaValue jsonString) {
-            try {
-                return json.load(new JSONTokener(jsonString.checkjstring()).nextValue());
-            } catch (JSONException e) {
-                error(e.getMessage());
+            is JSONArray -> LuaTable().apply {
+                for (i in 0 until kobject.length()) {
+                    this[i + 1] = load(kobject[i])
+                }
             }
-            return null;
+
+            else -> CoerceJavaToLua.coerce(kobject)
         }
     }
 }

@@ -1,175 +1,177 @@
-package com.wavecat.inline;
+package com.wavecat.inline
 
-import android.Manifest;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.provider.Settings;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.Manifest
+import android.content.DialogInterface
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.provider.Settings
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.CompoundButton
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.view.WindowCompat
+import androidx.preference.PreferenceManager
+import com.google.android.material.color.DynamicColors
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.wavecat.inline.service.InlineService.Companion.instance
+import com.wavecat.inline.service.InlineService.Companion.requireService
+import com.wavecat.inline.databinding.ActivityMainBinding
+import com.wavecat.inline.preferences.PreferencesDialog
+import com.wavecat.inline.service.InlineService
+import java.io.File
+import java.io.IOException
 
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.view.WindowCompat;
-import androidx.preference.PreferenceManager;
+@Suppress("unused")
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        DynamicColors.applyToActivityIfAvailable(this)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
-import com.google.android.material.color.DynamicColors;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.wavecat.inline.databinding.ActivityMainBinding;
+        super.onCreate(savedInstanceState)
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+        val preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+        val binding = ActivityMainBinding.inflate(layoutInflater)
 
-@SuppressWarnings("unused")
-public class MainActivity extends AppCompatActivity {
+        setContentView(binding.root)
+        setSupportActionBar(binding.toolbar)
 
-    private static final String LOADER_PREF = "loader_module";
+        binding.openAccessibilitySettings.setOnClickListener {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        }
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        DynamicColors.applyToActivityIfAvailable(this);
+        binding.reloadService.setOnClickListener {
+            val service = instance
+            service?.createEnvironment() ?: binding.openAccessibilitySettings.callOnClick()
+        }
 
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        val unloaded: MutableSet<String> = HashSet(
+            preferences.getStringSet(InlineService.UNLOADED, hashSetOf())!!
+        )
 
-        super.onCreate(savedInstanceState);
-
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-
-        ActivityMainBinding binding = ActivityMainBinding.inflate(getLayoutInflater());
-        setContentView(binding.getRoot());
-
-        setSupportActionBar(binding.toolbar);
-
-        binding.openAccessibilitySettings.setOnClickListener(view -> {
-            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        });
-
-        binding.reloadService.setOnClickListener(view -> {
-            InlineService service = InlineService.getInstance();
-
-            if (service == null) binding.openAccessibilitySettings.callOnClick();
-            else service.createEnvironment();
-        });
-
-        Set<String> unloaded = new HashSet<>(preferences.getStringSet(InlineService.UNLOADED, new HashSet<>()));
-
-        binding.reloadService.setOnLongClickListener(view -> {
+        binding.reloadService.setOnLongClickListener {
             try {
-                String[] internalModules = getResources().getAssets().list(InlineService.DEFAULT_ASSETS_PATH);
-                boolean[] enabled = new boolean[internalModules.length];
+                val internalModules = resources.assets.list(InlineService.DEFAULT_ASSETS_PATH)
+                val enabled = BooleanArray(internalModules!!.size)
 
-                for (int index = 0; index < internalModules.length; index++)
-                    enabled[index] = !unloaded.contains(internalModules[index]);
+                for (index in internalModules.indices) enabled[index] =
+                    !unloaded.contains(internalModules[index])
 
-                new MaterialAlertDialogBuilder(MainActivity.this)
-                        .setTitle(R.string.internal_modules)
-                        .setMultiChoiceItems(internalModules, enabled, (dialogInterface, index, value) -> {
-                            if (!value) unloaded.add(internalModules[index]);
-                            else unloaded.remove(internalModules[index]);
-                        })
-                        .setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
-                            preferences.edit()
-                                    .putStringSet(InlineService.UNLOADED, unloaded)
-                                    .apply();
-
-                            binding.reloadService.callOnClick();
-                        })
-                        .show();
-            } catch (IOException e) {
-                e.printStackTrace();
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle(R.string.internal_modules)
+                    .setMultiChoiceItems(
+                        internalModules,
+                        enabled
+                    ) { _: DialogInterface?, index: Int, value: Boolean ->
+                        if (!value)
+                            unloaded.add(internalModules[index])
+                        else
+                            unloaded.remove(internalModules[index])
+                    }
+                    .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int ->
+                        preferences.edit()
+                            .putStringSet(InlineService.UNLOADED, unloaded)
+                            .apply()
+                        binding.reloadService.callOnClick()
+                    }
+                    .show()
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
+            true
+        }
 
-            return true;
-        });
-
-        binding.loader.setChecked(preferences.getBoolean(LOADER_PREF, false));
-        binding.loader.setOnCheckedChangeListener((view, isChecked) -> {
+        binding.loader.isChecked = preferences.getBoolean(LOADER_PREF, false)
+        binding.loader.setOnCheckedChangeListener { _: CompoundButton?, isChecked: Boolean ->
             if (isChecked) {
-                new MaterialAlertDialogBuilder(MainActivity.this)
-                        .setTitle(R.string.attention)
-                        .setMessage(R.string.unknown_sources)
-                        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                        })
-                        .show();
+                MaterialAlertDialogBuilder(this@MainActivity)
+                    .setTitle(R.string.attention)
+                    .setMessage(R.string.unknown_sources)
+                    .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int -> }
+                    .show()
 
-                new File(getExternalFilesDirs(null)[0].getAbsolutePath() + "/modules").mkdirs();
+                File(getExternalFilesDirs(null)[0].absolutePath + "/modules").mkdirs()
             }
-
             preferences.edit()
-                    .putBoolean(LOADER_PREF, isChecked)
-                    .apply();
-
-            binding.reloadService.callOnClick();
-        });
+                .putBoolean(LOADER_PREF, isChecked)
+                .apply()
+            binding.reloadService.callOnClick()
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), result -> {
-            }).launch(Manifest.permission.POST_NOTIFICATIONS);
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { }.launch(
+                Manifest.permission.POST_NOTIFICATIONS
+            )
         }
     }
 
-    @Override
-    protected void onResume() {
-        invalidateOptionsMenu();
+    override fun onResume() {
+        invalidateOptionsMenu()
 
-        super.onResume();
+        super.onResume()
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu, menu);
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu, menu)
 
-        if (InlineService.getInstance() == null ||
-                InlineService.getInstance().getAllPreferences().isEmpty())
-            menu.removeItem(R.id.preferences);
+        if (instance == null || instance!!.allPreferences.isEmpty())
+            menu.removeItem(R.id.preferences)
 
-        return super.onCreateOptionsMenu(menu);
+        return super.onCreateOptionsMenu(menu)
     }
 
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        int id = item.getItemId();
-
-        if (id == R.id.storage_permission) {
-            showExternalStorageSettings();
-        } else if (id == R.id.preferences) {
-            showPreferencesDialog();
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.storage_permission -> showExternalStorageSettings()
+            R.id.preferences -> showPreferencesDialog()
         }
 
-        return super.onOptionsItemSelected(item);
+        return super.onOptionsItemSelected(item)
     }
 
-    private void showPreferencesDialog() {
-        InlineService service = InlineService.getInstance();
+    private fun showPreferencesDialog() {
+        val items: Array<String?> = requireService().allPreferences.keys.toTypedArray()
 
-        String[] items = service.getAllPreferences().keySet().toArray(new String[0]);
-
-        new MaterialAlertDialogBuilder(MainActivity.this)
-                .setTitle(R.string.preferences)
-                .setItems(items, (dialog, which) -> new PreferencesDialog(MainActivity.this, getLayoutInflater()).create(
-                        items[which],
-                        Objects.requireNonNull(
-                                service.getAllPreferences().get(items[which]))))
-                .setPositiveButton(android.R.string.ok, (dialog, which) -> dialog.cancel())
-                .show();
+        MaterialAlertDialogBuilder(this@MainActivity)
+            .setTitle(R.string.preferences)
+            .setItems(items) { _: DialogInterface?, which: Int ->
+                requireService().allPreferences[items[which]]?.let {
+                    PreferencesDialog(this@MainActivity).create(
+                        items[which]!!,
+                        it
+                    )
+                }
+            }
+            .setPositiveButton(android.R.string.ok) { dialog: DialogInterface, _: Int ->
+                dialog.cancel()
+            }
+            .show()
     }
 
-    private void showExternalStorageSettings() {
+    private fun showExternalStorageSettings() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            startActivity(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                    Uri.fromParts("package", getPackageName(), null)));
+            startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                    Uri.fromParts("package", packageName, null)
+                )
+            )
         } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
+            ActivityCompat.requestPermissions(
+                this, arrayOf(
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+                ), 1
+            )
         }
+    }
+
+    companion object {
+        private const val LOADER_PREF = "loader_module"
     }
 }
