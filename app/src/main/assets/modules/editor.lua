@@ -1,5 +1,5 @@
-require "com.wavecat.inline.libs.utf8"
-require "com.wavecat.inline.libs.utils"
+require "iutf8"
+require "utils"
 
 local function replace(input, query, args)
     inline:setText(input, query:replaceExpression(""):gsub(utils.escape(args[1]), args[2]))
@@ -40,8 +40,8 @@ local function invert(input, query)
     end
 
     inline:setText(input, query:replaceExpression(""):gsub(
-            utf8.charpattern,
-            replacements
+        utf8.charpattern,
+        replacements
     ))
 end
 
@@ -54,12 +54,52 @@ local function paste(input, query)
     inline:paste(input)
 end
 
+local function toggleCase(input, query)
+    local text = query:replaceExpression(""):gsub("%a", function(c)
+        return c:match("%l") and c:upper() or c:lower()
+    end)
+
+    inline:setText(input, text)
+end
+
+local function fspace(input, query)
+    inline:showFloatingWindow({}, function(ui)
+        local inputText = ui.textInput("space_" .. query:getArgs(), "Text")
+
+        ui.paddingTop = 0
+        ui.paddingBottom = 0
+
+        inputText:setText(query:replaceExpression(""))
+
+        return {
+            inputText,
+            {
+                ui.button("Paste", function()
+                    inline:setText(input, inputText:getText())
+                end),
+                ui.spacer(8),
+                ui.button("Close", function()
+                    ui:close()
+                end)
+            }
+        }
+    end)
+
+    query:answer()
+end
+
 return function(module)
     module:setCategory "Editor"
+
     module:registerCommand("replace", utils.command(replace, 2), "Changes text in which all occurrences of a substring are replaced by another substring")
     module:registerCommand("find", utils.hasArgs(find), "Selects the found fragment of text")
     module:registerCommand("repeat", repeat_, "Returns a string repeated the desired number of times")
     module:registerCommand("invert", invert, "Changes some characters to similar ones")
     module:registerCommand("erase", erase, "Erases all text")
     module:registerCommand("paste", paste, "Pastes text from clipboard")
+    module:registerCommand("toggle", toggleCase, "Changes lowercase letters to uppercase and vice versa.")
+
+    if (inline:isFloatingWindowSupported()) then
+        module:registerCommand("fspace", fspace, "Floating text editor")
+    end
 end

@@ -1,224 +1,163 @@
-package com.wavecat.inline.libs;
+@file:Suppress("ClassName", "unused")
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.text.Html;
-import android.text.TextUtils;
+package com.wavecat.inline.libs
 
-import androidx.annotation.NonNull;
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.os.Build
+import android.text.Html
+import android.text.TextUtils
+import com.wavecat.inline.service.InlineService.Companion.paste
+import com.wavecat.inline.service.InlineService.Companion.requireService
+import com.wavecat.inline.service.InlineService.Companion.setSelection
+import com.wavecat.inline.service.Query
+import com.wavecat.inline.extensions.oneArgFunction
+import com.wavecat.inline.extensions.twoArgFunction
+import com.wavecat.inline.extensions.varArgFunction
+import org.luaj.vm2.LuaValue
+import org.luaj.vm2.lib.OneArgFunction
+import org.luaj.vm2.lib.TwoArgFunction
+import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
-import com.wavecat.inline.InlineService;
-import com.wavecat.inline.Query;
 
-import org.luaj.vm2.LuaValue;
-import org.luaj.vm2.Varargs;
-import org.luaj.vm2.lib.OneArgFunction;
-import org.luaj.vm2.lib.TwoArgFunction;
-import org.luaj.vm2.lib.VarArgFunction;
-import org.luaj.vm2.lib.jse.CoerceJavaToLua;
+class colorama : TwoArgFunction() {
+    override fun call(name: LuaValue, env: LuaValue): LuaValue {
+        val library: LuaValue = tableOf()
 
-@SuppressWarnings("unused")
-public class colorama extends TwoArgFunction {
-
-    private static ClipboardManager clipboardManager;
-    private static boolean availability = true;
-
-    @Override
-    public LuaValue call(LuaValue name, LuaValue env) {
-        LuaValue library = tableOf();
-
-        library.set("init", new Init());
-        library.set("wrap", new Wrap());
-        library.set("of", new Of());
-        library.set("quote", new Quote());
-        library.set("font", new Font());
-        library.set("text", new Text());
-
-        library.set("bold", new HtmlTag("b"));
-        library.set("italic", new HtmlTag("i"));
-        library.set("small", new HtmlTag("small"));
-        library.set("big", new HtmlTag("big"));
-        library.set("strike", new HtmlTag("strike"));
-        library.set("subscript", new HtmlTag("sub"));
-        library.set("superscript", new HtmlTag("sup"));
-
-        library.set("h1", new HeaderTag(1));
-        library.set("h2", new HeaderTag(2));
-        library.set("h3", new HeaderTag(3));
-        library.set("h4", new HeaderTag(4));
-        library.set("h5", new HeaderTag(5));
-        library.set("h6", new HeaderTag(6));
-
-        library.set("newline", "<br>");
-
-        env.set("colorama", library);
-        env.get("package").get("loaded").set("colorama", library);
-
-        if (clipboardManager == null) {
-            InlineService context = InlineService.getInstance();
-
-            if (context == null)
-                error("service is not active");
-
-            clipboardManager = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-        }
-
-        return library;
-    }
-
-    static class Init extends TwoArgFunction {
-        @Override
-        public LuaValue call(LuaValue arg1, LuaValue arg2) {
-            LuaValue availability = arg1.isboolean() ? arg1 : arg2; // legacy
+        library["init"] = twoArgFunction { arg1, arg2 ->
+            val availability = if (arg1.isboolean()) arg1 else arg2 // legacy
 
             if (!availability.isnil())
-                colorama.availability = availability.checkboolean();
+                Companion.availability = availability.checkboolean()
 
-            return NIL;
+            NIL
         }
-    }
 
-    static class Wrap extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue value) {
-            value.checkfunction();
-            return new TwoArgFunction() {
-                @Override
-                public LuaValue call(LuaValue input, LuaValue query) {
-                    return value.call(input, CoerceJavaToLua.coerce(new ColoramaQuery((Query) query.checkuserdata(Query.class))));
+        library["wrap"] = oneArgFunction { value ->
+            value.checkfunction()
+
+            twoArgFunction { input, query ->
+                value.call(
+                    input,
+                    CoerceJavaToLua.coerce(ColoramaQuery(query.checkuserdata(Query::class.java) as Query))
+                )
+            }
+        }
+
+        library["of"] = oneArgFunction { query ->
+            CoerceJavaToLua.coerce(ColoramaQuery(query.checkuserdata(Query::class.java) as Query))
+        }
+
+        library["quote"] = oneArgFunction { text ->
+            valueOf(TextUtils.htmlEncode(text.checkjstring()))
+        }
+
+        library["font"] = twoArgFunction { text, color ->
+            val colorAttr = color.takeIf { !it.isnil() }?.tojstring()?.let { " color=\"$it\"" } ?: ""
+            valueOf("<font$colorAttr>${TextUtils.htmlEncode(text.tojstring())}</font>")
+        }
+
+        library["text"] = varArgFunction { varargs ->
+            if (varargs.narg() < 2)
+                NIL
+            else
+                buildString {
+                    val separator = varargs.arg1().checkjstring()
+                    for (i in 2..varargs.narg()) {
+                        if (i > 2) append(separator)
+                        append(varargs.arg(i).checkjstring())
+                    }
+                }.let {
+                    valueOf(it)
                 }
-            };
+        }
+
+        library["bold"] = HtmlTag("b")
+        library["italic"] = HtmlTag("i")
+        library["small"] = HtmlTag("small")
+        library["big"] = HtmlTag("big")
+        library["strike"] = HtmlTag("strike")
+        library["subscript"] = HtmlTag("sub")
+        library["superscript"] = HtmlTag("sup")
+
+        library["h1"] = HeaderTag(1)
+        library["h2"] = HeaderTag(2)
+        library["h3"] = HeaderTag(3)
+        library["h4"] = HeaderTag(4)
+        library["h5"] = HeaderTag(5)
+        library["h6"] = HeaderTag(6)
+
+        library["newline"] = "<br>"
+
+        env["colorama"] = library
+        env["package"]["loaded"]["colorama"] = library
+
+        return library
+    }
+
+    class HtmlTag(private val tag: String) : OneArgFunction() {
+        override fun call(text: LuaValue): LuaValue {
+            return valueOf("<$tag>${text.checkjstring()}</$tag>")
         }
     }
 
-    static class Of extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue query) {
-            return CoerceJavaToLua.coerce(new ColoramaQuery((Query) query.checkuserdata(Query.class)));
+    class HeaderTag(private val size: Int) : OneArgFunction() {
+        override fun call(text: LuaValue): LuaValue {
+            return valueOf("<h$size>${text.checkjstring()}</h$size>")
         }
     }
 
-    static class HtmlTag extends OneArgFunction {
-        private final String htmlTag;
+    private class ColoramaQuery(query: Query) : Query(
+        accessibilityNodeInfo = query.accessibilityNodeInfo,
+        currentText = query.text,
+        expression = query.expression,
+        args = query.args
+    ) {
+        private val startExp = startPosition
+        private var endExp = startPosition + expression.length
 
-        public HtmlTag(String htmlTag) {
-            this.htmlTag = htmlTag;
-        }
+        override fun answer(reply: String?) {
+            val raw = reply?.let { formatHtml(it) } ?: return answerRaw(null)
 
-        @Override
-        public LuaValue call(LuaValue text) {
-            return valueOf("<" + htmlTag + ">" + text.checkjstring() + "</" + htmlTag + ">");
-        }
-    }
+            for (attempt in 0..2) {
+                clipboardManager.setPrimaryClip(ClipData.newHtmlText("colorama", raw, reply))
 
-    static class HeaderTag extends OneArgFunction {
-        private final int size;
+                setSelection(accessibilityNodeInfo, startExp, endExp)
+                paste(accessibilityNodeInfo)
 
-        public HeaderTag(int size) {
-            this.size = size;
-        }
+                text = replaceExpression(raw)
+                endExp = startExp + raw.length
 
-        @Override
-        public LuaValue call(LuaValue text) {
-            return valueOf("<h" + size + ">" + text.checkjstring() + "</h" + size + ">");
-        }
-    }
-
-    static class Font extends TwoArgFunction {
-        @Override
-        public LuaValue call(LuaValue text, LuaValue color) {
-            return valueOf("<font"
-                    + (color.isnil() ? "" : " color=\"" + color.tojstring() + "\"")
-                    + ">" + TextUtils.htmlEncode(text.tojstring()) + "</font>");
-        }
-    }
-
-    static class Quote extends OneArgFunction {
-        @Override
-        public LuaValue call(LuaValue text) {
-            return valueOf(TextUtils.htmlEncode(text.checkjstring()));
-        }
-    }
-
-    static class Text extends VarArgFunction {
-        @Override
-        public LuaValue invoke(Varargs varargs) {
-            StringBuilder result = new StringBuilder();
-
-            for (int n = 2; n < varargs.narg() + 1; n++) {
-                result.append(varargs.arg(n).checkjstring());
-                result.append(varargs.arg1().checkjstring());
-            }
-
-            result.delete(result.length() - varargs.arg1().checkjstring().length(), result.length());
-
-            return valueOf(result.toString());
-        }
-    }
-
-    private static class ColoramaQuery extends Query {
-
-        private final int startExp;
-        private int endExp;
-
-        public ColoramaQuery(Query query) {
-            super(query.getAccessibilityNodeInfo(), query.getText(), query.getExpression(), query.getArgs());
-
-            int index = getStartPosition();
-
-            startExp = index;
-            endExp = index + expression.length();
-        }
-
-        public void answer(String html) {
-            if (html == null || html.isEmpty()) {
-                answerRaw(html);
-                return;
-            }
-
-            String raw = Html.fromHtml(html).toString();
-
-            if (!availability) {
-                answerRaw(raw);
-                return;
-            }
-
-            for (int attempt = 0; attempt < 3; attempt++) {
-                clipboardManager.setPrimaryClip(ClipData.newHtmlText("colorama", raw, html));
-
-                InlineService.setSelection(accessibilityNodeInfo, startExp, endExp);
-                InlineService.paste(accessibilityNodeInfo);
-
-                text = replaceExpression(raw);
-
-                endExp = startExp + raw.length();
-
-                accessibilityNodeInfo.refresh();
-                if (accessibilityNodeInfo.getText().length() == text.length()) {
-                    InlineService.setSelection(accessibilityNodeInfo, endExp, endExp);
-                    break;
+                accessibilityNodeInfo.refresh()
+                if (accessibilityNodeInfo.text.length == text.length) {
+                    setSelection(accessibilityNodeInfo, endExp, endExp)
+                    break
                 }
 
-                answerRaw(raw);
+                answerRaw(raw)
             }
         }
 
-        public void answerRaw(String reply) {
-            super.answer(reply);
+        fun answerRaw(reply: String?) = super.answer(reply)
+
+        override fun toString(): String {
+            return "ColoramaQuery{currentText=$currentText, expression=$expression, args=$args, text=$text, startExp=$startExp, endExp=$endExp}"
+        }
+    }
+
+    companion object {
+        val clipboardManager: ClipboardManager by lazy {
+            requireService().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         }
 
-        @NonNull
-        @Override
-        public String toString() {
-            return "ColoramaQuery{" +
-                    "currentText='" + currentText + '\'' +
-                    ", expression='" + expression + '\'' +
-                    ", args='" + args + '\'' +
-                    ", text='" + text + '\'' +
-                    ", startExp=" + startExp +
-                    ", endExp=" + endExp +
-                    '}';
-        }
+        fun formatHtml(reply: String) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Html.fromHtml(reply, Html.FROM_HTML_MODE_LEGACY)
+        } else {
+            @Suppress("DEPRECATION")
+            Html.fromHtml(reply)
+        }.toString()
+
+        private var availability = true
     }
 }

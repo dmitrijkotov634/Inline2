@@ -19,3 +19,14 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-keep class com.wavecat.inline.** { *; }
+-keepnames class com.wavecat.inline.**
+
+-keep class okhttp3.** { *; }
+-keepnames class okhttp3.**
+
+-keepattributes *Annotation*
+-keepclassmembers class * {
+    @androidx.annotation.Keep *;
+}

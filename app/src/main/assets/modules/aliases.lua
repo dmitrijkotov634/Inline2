@@ -1,4 +1,4 @@
-require "com.wavecat.inline.libs.menu"
+require "menu"
 
 local aliases = inline:getSharedPreferences "aliases"
 
@@ -45,7 +45,9 @@ local function aliases_(_, query)
         },
         " List of aliases:\n\n"
     }
+
     local iterator = aliases:getAll():entrySet():iterator()
+
     while iterator:hasNext() do
         local entry = iterator:next()
         result[#result + 1] = {
@@ -68,6 +70,7 @@ local function aliases_(_, query)
         }
         result[#result + 1] = " " .. entry:getKey() .. " -> " .. entry:getValue() .. "\n"
     end
+
     menu.create(query, result, aliases_)
 end
 
