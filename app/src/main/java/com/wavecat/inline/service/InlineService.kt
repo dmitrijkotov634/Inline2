@@ -176,7 +176,7 @@ class InlineService : AccessibilityService() {
                         CoerceJavaToLua.coerce(
                             Module(
                                 service = this,
-                                filepath = fileName,
+                                filepath = path,
                                 isInternal = true
                             )
                         )
@@ -201,7 +201,7 @@ class InlineService : AccessibilityService() {
                             CoerceJavaToLua.coerce(
                                 Module(
                                     service = this,
-                                    filepath = file.name,
+                                    filepath = file.path,
                                     isInternal = false
                                 )
                             )
