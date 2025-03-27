@@ -27,7 +27,5 @@ class Button : MaterialButton, Preference {
         return this
     }
 
-    override fun getView(preferences: SharedPreferences?): View {
-        return this
-    }
+    override fun getView(preferences: SharedPreferences?): View = this
 }

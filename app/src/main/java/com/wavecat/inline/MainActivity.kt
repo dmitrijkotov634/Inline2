@@ -17,11 +17,11 @@ import androidx.core.view.WindowCompat
 import androidx.preference.PreferenceManager
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.wavecat.inline.service.InlineService.Companion.instance
-import com.wavecat.inline.service.InlineService.Companion.requireService
 import com.wavecat.inline.databinding.ActivityMainBinding
 import com.wavecat.inline.preferences.PreferencesDialog
 import com.wavecat.inline.service.InlineService
+import com.wavecat.inline.service.InlineService.Companion.instance
+import com.wavecat.inline.service.InlineService.Companion.requireService
 import java.io.File
 import java.io.IOException
 
@@ -59,8 +59,8 @@ class MainActivity : AppCompatActivity() {
                 val internalModules = resources.assets.list(InlineService.DEFAULT_ASSETS_PATH)
                 val enabled = BooleanArray(internalModules!!.size)
 
-                for (index in internalModules.indices) enabled[index] =
-                    !unloaded.contains(internalModules[index])
+                for (index in internalModules.indices)
+                    enabled[index] = !unloaded.contains(internalModules[index])
 
                 MaterialAlertDialogBuilder(this@MainActivity)
                     .setTitle(R.string.internal_modules)
@@ -77,12 +77,14 @@ class MainActivity : AppCompatActivity() {
                         preferences.edit()
                             .putStringSet(InlineService.UNLOADED, unloaded)
                             .apply()
+
                         binding.reloadService.callOnClick()
                     }
                     .show()
             } catch (e: IOException) {
                 e.printStackTrace()
             }
+
             true
         }
 
@@ -97,22 +99,22 @@ class MainActivity : AppCompatActivity() {
 
                 File(getExternalFilesDirs(null)[0].absolutePath + "/modules").mkdirs()
             }
+
             preferences.edit()
                 .putBoolean(LOADER_PREF, isChecked)
                 .apply()
+
             binding.reloadService.callOnClick()
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { }.launch(
                 Manifest.permission.POST_NOTIFICATIONS
             )
-        }
     }
 
     override fun onResume() {
         invalidateOptionsMenu()
-
         super.onResume()
     }
 
@@ -141,10 +143,7 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.preferences)
             .setItems(items) { _: DialogInterface?, which: Int ->
                 requireService().allPreferences[items[which]]?.let {
-                    PreferencesDialog(this@MainActivity).create(
-                        items[which]!!,
-                        it
-                    )
+                    PreferencesDialog(this@MainActivity).create(items[which]!!, it)
                 }
             }
             .setPositiveButton(android.R.string.ok) { dialog: DialogInterface, _: Int ->

@@ -57,8 +57,10 @@ class SeekBar : AppCompatSeekBar, Preference {
     override fun getView(preferences: SharedPreferences?): View {
         setOnSeekBarChangeListener(null)
 
-        if (sharedKey != null && preferences != null)
-            progress = preferences.getInt(sharedKey, defaultValue)
+        sharedKey?.let {
+            if (preferences != null)
+                progress = preferences.getInt(it, defaultValue)
+        }
 
         setOnSeekBarChangeListener(object : OnSeekBarChangeListener {
             override fun onProgressChanged(

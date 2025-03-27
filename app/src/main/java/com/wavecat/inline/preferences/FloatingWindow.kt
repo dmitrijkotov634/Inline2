@@ -191,7 +191,7 @@ class FloatingWindow(private val context: Context) {
         }
     }
 
-    private fun close() {
+    fun close() {
         mLayout?.let {
             builder.set("layout", LuaValue.NIL)
             mWindowManager.removeView(it)

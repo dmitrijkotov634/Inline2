@@ -2,8 +2,10 @@
 
 package com.wavecat.inline.libs
 
+import com.wavecat.inline.extensions.forEachVararg
 import com.wavecat.inline.extensions.oneArgFunction
 import com.wavecat.inline.extensions.threeArgFunction
+import com.wavecat.inline.extensions.varArgFunction
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.TwoArgFunction
 
@@ -18,6 +20,27 @@ class utf8 : TwoArgFunction() {
             val endIndex = end.optint(str.length).coerceAtMost(str.length)
 
             valueOf(str.substring(startIndex, endIndex))
+        }
+
+        library["lower"] = oneArgFunction { valueOf(it.checkjstring().lowercase()) }
+        library["upper"] = oneArgFunction { valueOf(it.checkjstring().uppercase()) }
+
+        library["char"] = varArgFunction {
+            valueOf(buildString {
+                it.forEachVararg {
+                    append(it.checkint())
+                }
+            })
+        }
+
+        library["isLower"] = oneArgFunction { value ->
+            val str = value.checkjstring()
+            valueOf(str == str.lowercase() && str != str.uppercase())
+        }
+
+        library["isUpper"] = oneArgFunction { value ->
+            val str = value.checkjstring()
+            valueOf(str == str.uppercase() && str != str.lowercase())
         }
 
         env["utf8"] = library

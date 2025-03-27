@@ -1,4 +1,4 @@
-@file:Suppress("MemberVisibilityCanBePrivate")
+@file:Suppress("MemberVisibilityCanBePrivate", "unused")
 
 package com.wavecat.inline.service
 
@@ -41,7 +41,6 @@ import java.util.Timer
 import java.util.TimerTask
 import java.util.regex.Pattern
 
-@Suppress("unused")
 class InlineService : AccessibilityService() {
     private var environment: Globals? = null
 
@@ -49,16 +48,16 @@ class InlineService : AccessibilityService() {
         PreferenceManager.getDefaultSharedPreferences(this)
     }
 
-    private val timer = Timer()
+    val timer = Timer()
 
     val allCommands: HashMap<String, Command> = hashMapOf()
     val allWatchers: HashMap<LuaValue, Int> = hashMapOf()
     val allPreferences: HashMap<String?, HashSet<PreferencesItem>> = hashMapOf()
     val allCommandFinders: MutableSet<LuaValue> = hashSetOf()
 
-    private var defaultPath = HashSet<String>()
+    var defaultPath = HashSet<String>()
 
-    private val pattern: Pattern by lazy {
+    val pattern: Pattern by lazy {
         Pattern.compile(
             defaultSharedPreferences.getString(PATTERN, "(\\{([\\S]+)(?:\\s([\\S\\s]+?)\\}*)?\\}\\$)+")!!,
             Pattern.DOTALL
