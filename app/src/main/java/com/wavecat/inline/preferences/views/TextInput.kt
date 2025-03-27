@@ -67,7 +67,7 @@ class TextInput(context: Context) : TextInputLayout(context), Preference {
             editText?.removeTextChangedListener(textWatcher)
 
         sharedKey?.let {
-            editText?.setText(preferences?.getString(sharedKey, defaultValue))
+            editText?.setText(preferences?.getString(it, defaultValue))
         }
 
         textWatcher = object : TextWatcher {

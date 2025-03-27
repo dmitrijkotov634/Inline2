@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.appcompat.widget.AppCompatSpinner
+import com.wavecat.inline.extensions.forEach
 import com.wavecat.inline.preferences.Preference
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
@@ -36,14 +37,8 @@ class Spinner(context: Context?, set: LuaTable) : AppCompatSpinner(context!!), P
     }
 
     init {
-        var k = LuaValue.NIL
-
-        while (true) {
-            val n = set.next(k)
-
-            if (n.arg1().also { k = it }.isnil()) break
-
-            choices.add(n.arg(2).tojstring())
+        set.forEach { _, value ->
+            choices.add(value.tojstring())
         }
 
         adapter = ArrayAdapter(context!!, android.R.layout.simple_spinner_item, choices)
@@ -78,16 +73,18 @@ class Spinner(context: Context?, set: LuaTable) : AppCompatSpinner(context!!), P
                     return
                 }
 
-                if (sharedKey != null && preferences != null) preferences
-                    .edit()
-                    .putString(sharedKey, adapter.getItem(position))
-                    .apply()
+                sharedKey?.let {
+                    preferences
+                        ?.edit()
+                        ?.putString(it, adapter.getItem(position))
+                        ?.apply()
+                }
 
-                if (listener != null) listener!!.call(
-                    LuaValue.valueOf(adapter.getItem(position)), CoerceJavaToLua.coerce(
-                        this@Spinner
+                if (listener != null)
+                    listener!!.call(
+                        LuaValue.valueOf(adapter.getItem(position)),
+                        CoerceJavaToLua.coerce(this@Spinner)
                     )
-                )
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) {}

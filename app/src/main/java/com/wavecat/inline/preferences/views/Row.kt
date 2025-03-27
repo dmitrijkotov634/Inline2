@@ -5,7 +5,10 @@ import android.content.Context
 import org.luaj.vm2.LuaTable
 
 @SuppressLint("ViewConstructor")
-class Row(context: Context, views: LuaTable) : LinearGroup(context, views) {
+class Row(
+    context: Context,
+    views: LuaTable,
+) : LinearGroup(context, views) {
     init {
         orientation = HORIZONTAL
     }

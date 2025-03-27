@@ -15,20 +15,17 @@ open class Spacer(context: Context, private val padding: Int) : View(context), P
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+
         val parent = parent
-        if (parent is LinearLayout) {
+        if (parent is LinearLayout)
             isVerticalParent = parent.orientation == LinearLayout.VERTICAL
-        }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val finalWidth = if (isVerticalParent) 0 else padding.dp
         val finalHeight = if (isVerticalParent) padding.dp else 0
-
         setMeasuredDimension(finalWidth, finalHeight)
     }
 
-    override fun getView(preferences: SharedPreferences?): View {
-        return this
-    }
+    override fun getView(preferences: SharedPreferences?): View = this
 }

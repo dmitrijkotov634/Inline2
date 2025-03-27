@@ -24,13 +24,11 @@ class CheckBox : MaterialCheckBox, Preference {
 
     constructor(context: Context?, sharedKey: String?, text: String?) : super(context) {
         this.sharedKey = sharedKey
-
         setText(text)
     }
 
     constructor(context: Context?, text: String?, listener: LuaValue?) : super(context) {
         this.listener = listener
-
         setText(text)
     }
 
@@ -40,7 +38,6 @@ class CheckBox : MaterialCheckBox, Preference {
 
     fun setListener(listener: LuaValue?): CheckBox {
         this.listener = listener
-
         return this
     }
 
@@ -57,18 +54,24 @@ class CheckBox : MaterialCheckBox, Preference {
     override fun getView(preferences: SharedPreferences?): View {
         setOnCheckedChangeListener(null)
 
-        if (sharedKey != null && preferences != null) isChecked =
-            preferences.getBoolean(sharedKey, defaultValue)
+        sharedKey?.let {
+            if (preferences != null)
+                isChecked = preferences.getBoolean(sharedKey, defaultValue)
+        }
 
         setOnCheckedChangeListener { _: CompoundButton?, isChecked: Boolean ->
-            if (sharedKey != null && preferences != null) preferences
-                .edit()
-                .putBoolean(sharedKey, isChecked)
-                .apply()
-            if (listener != null) listener!!.call(
-                LuaValue.valueOf(isChecked),
-                CoerceJavaToLua.coerce(this@CheckBox)
-            )
+            sharedKey?.let {
+                preferences
+                    ?.edit()
+                    ?.putBoolean(it, isChecked)
+                    ?.apply()
+            }
+
+            if (listener != null)
+                listener!!.call(
+                    LuaValue.valueOf(isChecked),
+                    CoerceJavaToLua.coerce(this@CheckBox)
+                )
         }
 
         return this
