@@ -2,8 +2,9 @@ require "json"
 require "http"
 require "menu"
 
-local TimeUnit = luajava.bindClass "java.util.concurrent.TimeUnit"
+local DEFAULT_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
+local TimeUnit = luajava.bindClass "java.util.concurrent.TimeUnit"
 local preferences = inline:getDefaultSharedPreferences()
 
 local client = http(
@@ -17,10 +18,6 @@ local client = http(
 local history = {}
 local timestamp = os.time()
 local cursor = 1
-
-local function trim(s)
-    return s:match "^%s*(.-)%s*$"
-end
 
 local function clear(_, query)
     history = {}
@@ -86,19 +83,27 @@ local function getPreferences(prefs)
         .. preferences:getInt("openai_history_minutes", 5) .. " minutes")
 
     return {
-        prefs.textInput("openai_key", "OpenAI Key"),
+        prefs.textInput("openai_key", "OpenAI Key")
+             :setSingleLine(true),
+        prefs.spacer(8),
         historyRemove,
+        prefs.spacer(8),
         prefs.seekBar("openai_history_minutes", 30)
              :setDefault(5)
              :setOnProgressChanged(function(progress)
             historyRemove:setText("Chat history is automatically deleted after " .. progress .. " minutes")
         end),
+        prefs.spacer(8),
         "The OpenAI API is powered by a diverse set of models with different capabilities and price points.\n",
-        prefs.spinner("openai_model", { "gpt-4.5-preview", "gpt-4o", "gpt-4o-mini", "o3-mini" })
+        prefs.spacer(8),
+        prefs.textInput("openai_model", "API Model"):setDefault("gpt-4o-mini"),
+        prefs.spacer(8),
+        prefs.textInput("openai_url", "API Url"):setDefault(DEFAULT_API_ENDPOINT),
+        prefs.spacer(8)
     }
 end
 
-local function ask(_, query)
+local function ask(string, onResult)
     if os.time() - timestamp > preferences:getInt("openai_history_minutes", 5) * 60 then
         history = {}
         timestamp = os.time()
@@ -109,10 +114,13 @@ local function ask(_, query)
     })
 
     history[#history + 1] = {
-        role = "user", content = query:getArgs() == "" and query:replaceExpression("") or query:getArgs()
+        role = "user", content = string
     }
 
-    local request = http.Request.Builder.new():url("https://api.openai.com/v1/chat/completions"):headers(headers):post(
+    local request = http.Request.Builder.new()
+                        :url(preferences:getString("openai_url", DEFAULT_API_ENDPOINT))
+                        :headers(headers)
+                        :post(
         http.buildBody(
             json.dump({
                 model = preferences:getString("openai_model", "gpt-4o-mini"),
@@ -120,51 +128,159 @@ local function ask(_, query)
             }),
             "application/json"
         )
-    )                   :build()
-
-    query:answer "Loading"
+    )
+                        :build()
 
     client.call(
         request,
-        function(_, _, string)
-            local result = json.load(string)
+        function(_, _, str)
+            local result = json.load(str)
 
             if result.choices then
-                result.choices[1].message.content = trim(result.choices[1].message.content)
-                menu.create(
-                    query,
-                    {
-                        result.choices[1].message.content,
-                        "\n",
-                        {
-                            caption = "[√]",
-                            action = function(_, q)
-                                q:answer(result.choices[1].message.content)
-                            end
-                        }
-                    }
-                )
+                local message = result.choices[1].message
+
+                onResult(message.content)
 
                 history[#history + 1] = {
-                    content = result.choices[1].message.content,
-                    role = result.choices[1].message.role
+                    content = message.content,
+                    role = message.role
                 }
             else
-                query:answer(result.error.message)
+                onResult(result.error.message)
             end
         end,
         function(_, e)
-            query:answer("Error: " .. e:getMessage())
+            onResult("Error: " .. e:getMessage())
         end
     )
+end
+
+local function getArgs(query)
+    local args = query:getArgs()
+    if args == "" then
+        args = query:replaceExpression("")
+    end
+    return args
+end
+
+local function cask(_, query)
+    local args = getArgs(query)
+
+    query:answer("Loading")
+
+    ask(args, function(result)
+        menu.create(
+            query,
+            {
+                result,
+                "\n",
+                {
+                    caption = "[√]",
+                    action = function(_, q)
+                        q:answer(result)
+                    end
+                }
+            }
+        )
+    end)
+end
+
+local function fask(_, query)
+    local args = getArgs(query)
+
+    inline:showFloatingWindow({ noLimits = true },
+        function(ui)
+            local text = ui.text("Loading...")
+
+            ask(args, function(result)
+                text:setText(result)
+            end)
+
+            return {
+                text,
+                ui.spacer(8),
+                {
+                    ui.smallButton("Close", function()
+                        ui:close()
+                    end),
+
+                    ui.spacer(8),
+
+                    ui.smallButton("Copy", function()
+                        inline:copyToClipboard(text:getText())
+                    end)
+                }
+            }
+        end
+    )
+
+    query:answer()
+end
+
+local function fgpt(_, query)
+    inline:showFloatingWindow({ noLimits = true },
+        function(ui)
+            local input = ui.textInput("Input")
+            local text = ui.text("Empty history")
+
+            local askButton
+
+            askButton = ui.smallButton("Ask", function()
+                text:setText("Loading...")
+                askButton:setEnabled(false)
+                ask(input:getText(), function(result)
+                    text:setText(result)
+                    askButton:setEnabled(true)
+                end)
+            end)
+
+            if #history > 0 then
+                text:setText(history[#history].content)
+            end
+
+            return {
+                input,
+                ui.spacer(8),
+                text,
+                ui.spacer(8),
+                {
+                    askButton,
+                    ui.spacer(8),
+
+                    ui.smallButton("Copy", function()
+                        inline:copyToClipboard(text:getText())
+                    end),
+
+                    ui.spacer(8),
+
+                    ui.smallButton("Clear CTX", function()
+                        history = {}
+                    end),
+
+                    ui.spacer(8),
+
+                    ui.smallButton("Close", function()
+                        ui:close()
+                    end),
+                }
+            }
+        end
+    )
+
+    query:answer()
 end
 
 return function(module)
     module:setCategory "ChatGPT"
 
-    module:registerCommand("ask", ask, "Asks ChatGPT")
+    module:registerCommand("ask", cask, "Asks ChatGPT")
     module:registerCommand("clear", clear, "Clear dialog")
     module:registerCommand("history", show, "Show history")
+
+    if (inline:isFloatingWindowSupported()) then
+        module:registerCommand("fask", fask, "Asks ChatGPT with Floating result")
+        module:registerCommand("fgpt", fgpt, "Floating ChatGPT Window")
+    end
 
     module:registerPreferences(getPreferences)
 end

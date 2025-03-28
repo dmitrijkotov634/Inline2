@@ -73,12 +73,15 @@ local function fspace(input, query)
 
         return {
             inputText,
+            ui.spacer(8),
             {
-                ui.button("Paste", function()
+                ui.smallButton("Paste", function()
                     inline:setText(input, inputText:getText())
                 end),
+
                 ui.spacer(8),
-                ui.button("Close", function()
+
+                ui.smallButton("Close", function()
                     ui:close()
                 end)
             }

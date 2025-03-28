@@ -107,17 +107,19 @@ end
 local function getPreferences(prefs)
     return {
         prefs.checkBox("binder", "Enable binder"),
+        prefs.spacer(8),
         prefs.button("Unbind All", function()
             prefs:cancel()
             prefs:create("Unbind All?", function()
                 return {
                     "This button will erase all your binds",
+                    prefs.spacer(8),
                     {
                         prefs.button("Yes", function()
                             preferences:edit():clear():apply()
                             prefs:cancel()
                         end),
-                        "  ",
+                        prefs.spacer(8),
                         prefs.button("No", function()
                             prefs:cancel()
                         end)

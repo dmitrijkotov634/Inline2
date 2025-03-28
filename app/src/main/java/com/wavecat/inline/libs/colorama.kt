@@ -8,13 +8,13 @@ import android.content.Context
 import android.os.Build
 import android.text.Html
 import android.text.TextUtils
+import com.wavecat.inline.extensions.oneArgFunction
+import com.wavecat.inline.extensions.twoArgFunction
+import com.wavecat.inline.extensions.varArgFunction
 import com.wavecat.inline.service.InlineService.Companion.paste
 import com.wavecat.inline.service.InlineService.Companion.requireService
 import com.wavecat.inline.service.InlineService.Companion.setSelection
 import com.wavecat.inline.service.Query
-import com.wavecat.inline.extensions.oneArgFunction
-import com.wavecat.inline.extensions.twoArgFunction
-import com.wavecat.inline.extensions.varArgFunction
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.OneArgFunction
 import org.luaj.vm2.lib.TwoArgFunction

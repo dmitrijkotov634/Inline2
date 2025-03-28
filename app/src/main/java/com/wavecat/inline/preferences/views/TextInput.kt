@@ -7,6 +7,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.text.Editable
 import android.text.TextWatcher
+import android.text.method.HideReturnsTransformationMethod
+import android.text.method.PasswordTransformationMethod
 import android.view.View
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -53,6 +55,21 @@ class TextInput(context: Context) : TextInputLayout(context), Preference {
 
     fun setDefault(defaultValue: String?): TextInput {
         this.defaultValue = defaultValue
+        return this
+    }
+
+    fun setInputTypePassword(): TextInput {
+        editText?.transformationMethod = PasswordTransformationMethod.getInstance()
+        return this
+    }
+
+    fun setSingleLine(value: Boolean): TextInput {
+        editText?.isSingleLine = value
+        return this
+    }
+
+    fun setInputTypeDefault(): TextInput {
+        editText?.transformationMethod = HideReturnsTransformationMethod.getInstance()
         return this
     }
 

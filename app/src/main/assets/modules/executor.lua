@@ -49,7 +49,9 @@ local function getPreferences(prefs)
         prefs.checkBox("executor_print_code", "Print code before eval")
              :setDefault(true),
         codePlayground,
+        prefs.spacer(8),
         codeResult,
+        prefs.spacer(8),
         prefs.button("Execute", function()
             local status, message = pcall(function()
                 local chunk = load(codePlayground:getText())

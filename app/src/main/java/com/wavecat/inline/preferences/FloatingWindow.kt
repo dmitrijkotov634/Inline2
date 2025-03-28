@@ -48,18 +48,10 @@ class FloatingWindow(private val context: Context) {
 
     private val builder = Builder(context = context).apply {
         set("windowManager", CoerceJavaToLua.coerce(mWindowManager))
-        setPaddingDefaults()
         set("close", zeroArgFunction {
             close()
             LuaValue.NIL
         })
-    }
-
-    private fun Builder.setPaddingDefaults() {
-        set("paddingBottom", 8)
-        set("paddingTop", 8)
-        set("paddingLeft", 0)
-        set("paddingRight", 0)
     }
 
     fun configure(config: LuaValue) {
@@ -86,7 +78,6 @@ class FloatingWindow(private val context: Context) {
             setPadding(padding[0].dp, padding[1].dp, padding[2].dp, padding[3].dp)
             if (!transparent) background = createBackgroundDrawable()
         }
-
 
         builder.set("layout", CoerceJavaToLua.coerce(mLayout))
 
@@ -156,12 +147,6 @@ class FloatingWindow(private val context: Context) {
 
         val view = item.getView(sharedPreferences).apply {
             if (parent != null) (parent as ViewGroup).removeView(this)
-            setPadding(
-                builder.get("paddingLeft").optint(0).dp,
-                builder.get("paddingTop").optint(8).dp,
-                builder.get("paddingRight").optint(0).dp,
-                builder.get("paddingBottom").optint(8).dp
-            )
         }
 
         mLayout?.addView(view)
@@ -174,7 +159,8 @@ class FloatingWindow(private val context: Context) {
             WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH,
+                    WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
             if (noLimits) flags = flags or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
