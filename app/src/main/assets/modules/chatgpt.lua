@@ -106,33 +106,20 @@ end
 local function ask(string, onResult)
     if os.time() - timestamp > preferences:getInt("openai_history_minutes", 5) * 60 then
         history = {}
-        timestamp = os.time()
     end
 
-    local headers = http.buildHeaders({
-        Authorization = "Bearer " .. preferences:getString("openai_key", "")
-    })
+    timestamp = os.time()
 
-    history[#history + 1] = {
-        role = "user", content = string
-    }
+    history[#history + 1] = { role = "user", content = string }
 
-    local request = http.Request.Builder.new()
-                        :url(preferences:getString("openai_url", DEFAULT_API_ENDPOINT))
-                        :headers(headers)
-                        :post(
-        http.buildBody(
-            json.dump({
-                model = preferences:getString("openai_model", "gpt-4o-mini"),
-                messages = history
-            }),
-            "application/json"
-        )
-    )
-                        :build()
-
-    client.call(
-        request,
+    client.post({
+        url = preferences:getString("openai_url", DEFAULT_API_ENDPOINT),
+        headers = { Authorization = "Bearer " .. preferences:getString("openai_key", "") },
+        json = {
+            model = preferences:getString("openai_model", "gpt-4o-mini"),
+            messages = history
+        }
+    },
         function(_, _, str)
             local result = json.load(str)
 
@@ -188,84 +175,87 @@ end
 local function fask(_, query)
     local args = getArgs(query)
 
-    inline:showFloatingWindow({ noLimits = true },
-        function(ui)
-            local text = ui.text("Loading...")
+    inline:showFloatingWindow({ noLimits = true }, function(ui)
+        local text = ui.text("Loading...")
+        text:setMaxLines(15)
 
-            ask(args, function(result)
-                text:setText(result)
-            end)
+        ask(args, function(result)
+            text:setText(result)
+        end)
 
-            return {
-                text,
+        return {
+            text,
+            ui.spacer(8),
+            {
+                ui.smallButton("Close", function()
+                    ui:close()
+                end),
+
                 ui.spacer(8),
-                {
-                    ui.smallButton("Close", function()
-                        ui:close()
-                    end),
 
-                    ui.spacer(8),
-
-                    ui.smallButton("Copy", function()
-                        inline:copyToClipboard(text:getText())
-                    end)
-                }
+                ui.smallButton("Copy", function()
+                    inline:copyToClipboard(text:getText())
+                end)
             }
-        end
-    )
+        }
+    end)
 
     query:answer()
 end
 
 local function fgpt(_, query)
-    inline:showFloatingWindow({ noLimits = true },
-        function(ui)
-            local input = ui.textInput("Input")
-            local text = ui.text("Empty history")
+    inline:showFloatingWindow({ noLimits = true }, function(ui)
+        local input = ui.textInput("Input")
+        local text = ui.text("Empty history")
 
-            local askButton
+        input:getEditText():setMaxLines(5)
+        text:setMaxLines(15)
 
-            askButton = ui.smallButton("Ask", function()
-                text:setText("Loading...")
-                askButton:setEnabled(false)
-                ask(input:getText(), function(result)
-                    text:setText(result)
-                    askButton:setEnabled(true)
-                end)
+        input:setText(query:getArgs())
+
+        local askButton
+
+        askButton = ui.smallButton("Ask", function()
+            text:setText("Loading...")
+            askButton:setEnabled(false)
+            ask(input:getText(), function(result)
+                text:setText(result)
+                askButton:setEnabled(true)
             end)
+        end)
 
-            if #history > 0 then
-                text:setText(history[#history].content)
-            end
-
-            return {
-                input,
-                ui.spacer(8),
-                text,
-                ui.spacer(8),
-                {
-                    askButton,
-                    ui.spacer(8),
-
-                    ui.smallButton("Copy", function()
-                        inline:copyToClipboard(text:getText())
-                    end),
-
-                    ui.spacer(8),
-
-                    ui.smallButton("Clear CTX", function()
-                        history = {}
-                    end),
-
-                    ui.spacer(8),
-
-                    ui.smallButton("Close", function()
-                        ui:close()
-                    end),
-                }
-            }
+        if #history > 0 then
+            text:setText(history[#history].content)
         end
-    )
+
+        return {
+            input,
+            ui.spacer(8),
+            text,
+            ui.spacer(8),
+            {
+                askButton,
+                ui.spacer(8),
+
+                ui.smallButton("Copy", function()
+                    inline:copyToClipboard(text:getText())
+                end),
+
+                ui.spacer(8),
+
+                ui.smallButton("Clear CTX", function()
+                    text:setText("Empty history")
+                    history = {}
+                end),
+
+                ui.spacer(8),
+
+                ui.smallButton("Close", function()
+                    ui:close()
+                end),
+            }
+        }
+    end)
 
     query:answer()
 end
