@@ -23,7 +23,7 @@ open class Spacer(context: Context, private val padding: Int) : View(context), P
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val finalWidth = if (isVerticalParent) 0 else padding.dp
-        val finalHeight = if (isVerticalParent) padding.dp else 0
+        val finalHeight = if (!isVerticalParent) 0 else padding.dp
         setMeasuredDimension(finalWidth, finalHeight)
     }
 

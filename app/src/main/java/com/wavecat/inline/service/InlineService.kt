@@ -7,6 +7,9 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
@@ -23,6 +26,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.os.bundleOf
 import androidx.preference.PreferenceManager
+import com.google.android.material.color.DynamicColors
 import com.wavecat.inline.R
 import com.wavecat.inline.libs.Searcher
 import com.wavecat.inline.preferences.FloatingWindow
@@ -48,7 +52,11 @@ class InlineService : AccessibilityService() {
         PreferenceManager.getDefaultSharedPreferences(this)
     }
 
-    val timer = Timer()
+    private val clipboardManager: ClipboardManager by lazy {
+        getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    }
+
+    var timer = Timer()
 
     val allCommands: HashMap<String, Command> = hashMapOf()
     val allWatchers: HashMap<LuaValue, Int> = hashMapOf()
@@ -98,6 +106,7 @@ class InlineService : AccessibilityService() {
 
         timer.cancel()
         timer.purge()
+        timer = Timer()
 
         allCommands.clear()
         allWatchers.clear()
@@ -150,7 +159,14 @@ class InlineService : AccessibilityService() {
 
     fun showFloatingWindow(config: LuaValue, init: LuaValue): FloatingWindow? {
         if (isFloatingWindowSupported()) {
-            return FloatingWindow(ContextThemeWrapper(this, R.style.Theme_Inline)).apply {
+            return FloatingWindow(
+                DynamicColors.wrapContextIfAvailable(
+                    ContextThemeWrapper(
+                        this,
+                        R.style.Theme_Inline
+                    )
+                )
+            ).apply {
                 configure(config)
                 create(init)
             }
@@ -276,6 +292,9 @@ class InlineService : AccessibilityService() {
 
     fun toast(text: String?) =
         Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+
+    fun copyToClipboard(string: String) =
+        clipboardManager.setPrimaryClip(ClipData.newPlainText("Inline", string))
 
     override fun onInterrupt() {
         instance = null

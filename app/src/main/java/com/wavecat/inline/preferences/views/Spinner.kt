@@ -44,6 +44,7 @@ class Spinner(context: Context?, set: LuaTable) : AppCompatSpinner(context!!), P
         adapter = ArrayAdapter(context!!, android.R.layout.simple_spinner_item, choices)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         setAdapter(adapter)
+        setSelection(0)
     }
 
     fun setListener(listener: LuaValue?): Spinner {

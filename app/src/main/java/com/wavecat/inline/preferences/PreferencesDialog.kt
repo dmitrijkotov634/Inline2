@@ -11,7 +11,6 @@ import com.wavecat.inline.extensions.forEach
 import com.wavecat.inline.extensions.varArgFunction
 import com.wavecat.inline.extensions.zeroArgFunction
 import com.wavecat.inline.service.InlineService.Companion.requireService
-import com.wavecat.inline.utils.dp
 import org.luaj.vm2.lib.VarArgFunction.NIL
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
@@ -42,11 +41,6 @@ class PreferencesDialog(private val context: Context) {
             create(args.checkjstring(2), preferences)
             NIL
         })
-
-        set("paddingBottom", 8)
-        set("paddingTop", 8)
-        set("paddingLeft", 0)
-        set("paddingRight", 0)
     }
 
     fun create(title: String, preferences: HashSet<PreferencesItem>) {
@@ -61,13 +55,6 @@ class PreferencesDialog(private val context: Context) {
 
                 if (view.parent != null)
                     (view.parent as ViewGroup).removeView(view)
-
-                view.setPadding(
-                    /* left = */ builder.get("paddingLeft").optint(0).dp,
-                    /* top = */ builder.get("paddingTop").optint(8).dp,
-                    /* right = */ builder.get("paddingRight").optint(0).dp,
-                    /* bottom = */ builder.get("paddingBottom").optint(8).dp,
-                )
 
                 binding.preferences.addView(view)
             }

@@ -7,23 +7,26 @@ import com.wavecat.inline.preferences.views.CheckBox
 import com.wavecat.inline.preferences.views.Column
 import com.wavecat.inline.preferences.views.Row
 import com.wavecat.inline.preferences.views.SeekBar
+import com.wavecat.inline.preferences.views.SmallButton
 import com.wavecat.inline.preferences.views.Spacer
 import com.wavecat.inline.preferences.views.Spinner
 import com.wavecat.inline.preferences.views.Text
 import com.wavecat.inline.preferences.views.TextInput
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaTable.CALL
-import org.luaj.vm2.LuaTable.varargsOf
+import org.luaj.vm2.LuaValue.varargsOf
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
 fun withContext(context: Context, klass: Class<*>): LuaTable =
     LuaTable().apply {
-        setmetatable(LuaTable().apply {
-            this[CALL] = varArgFunction {
-                CoerceJavaToLua.coerce(klass)["new"]
-                    .invoke(varargsOf(CoerceJavaToLua.coerce(context), it.subargs(2)))
-            }
-        })
+        val meta = LuaTable()
+
+        meta[CALL] = varArgFunction { args ->
+            CoerceJavaToLua.coerce(klass)["new"]
+                .invoke(varargsOf(CoerceJavaToLua.coerce(context), args.subargs(2)))
+        }
+
+        setmetatable(meta)
     }
 
 class Builder(context: Context) : LuaTable() {
@@ -37,5 +40,6 @@ class Builder(context: Context) : LuaTable() {
         set("textInput", withContext(context, TextInput::class.java))
         set("button", withContext(context, Button::class.java))
         set("spacer", withContext(context, Spacer::class.java))
+        set("smallButton", withContext(context, SmallButton::class.java))
     }
 }
