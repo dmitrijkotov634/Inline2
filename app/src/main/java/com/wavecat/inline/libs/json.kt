@@ -63,7 +63,7 @@ class json : TwoArgFunction() {
             else -> error("Unable to serialize ${value.typename()}")
         }
 
-        private fun dumpTable(value: LuaValue, stack: MutableSet<LuaValue>): Any {
+        fun dumpTable(value: LuaValue, stack: MutableSet<LuaValue>): Any {
             if (!stack.add(value))
                 error("circular reference")
 
@@ -79,7 +79,7 @@ class json : TwoArgFunction() {
             }
         }
 
-        private fun load(kobject: Any): LuaValue = when (kobject) {
+        fun load(kobject: Any): LuaValue = when (kobject) {
             is JSONObject -> LuaTable().apply {
                 kobject.keys().forEach { key -> this[key] = load(kobject[key]) }
             }

@@ -14,9 +14,6 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
-import android.os.Handler
-import android.os.Looper
-import android.util.Log
 import android.view.ContextThemeWrapper
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -28,32 +25,22 @@ import androidx.core.os.bundleOf
 import androidx.preference.PreferenceManager
 import com.google.android.material.color.DynamicColors
 import com.wavecat.inline.R
-import com.wavecat.inline.libs.Searcher
 import com.wavecat.inline.preferences.FloatingWindow
 import com.wavecat.inline.preferences.PreferencesItem
-import org.luaj.vm2.Globals
+import com.wavecat.inline.utils.runOnUiThread
 import org.luaj.vm2.LuaError
 import org.luaj.vm2.LuaString
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 import org.luaj.vm2.lib.jse.JsePlatform
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileReader
 import java.io.IOException
 import java.util.Timer
 import java.util.TimerTask
 import java.util.regex.Pattern
 
 class InlineService : AccessibilityService() {
-    private var environment: Globals? = null
-
     val defaultSharedPreferences: SharedPreferences by lazy {
         PreferenceManager.getDefaultSharedPreferences(this)
-    }
-
-    private val clipboardManager: ClipboardManager by lazy {
-        getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     }
 
     var timer = Timer()
@@ -63,7 +50,12 @@ class InlineService : AccessibilityService() {
     val allPreferences: HashMap<String?, HashSet<PreferencesItem>> = hashMapOf()
     val allCommandFinders: MutableSet<LuaValue> = hashSetOf()
 
-    var defaultPath = HashSet<String>()
+    val defaultPath by lazy {
+        hashSetOf(
+            Environment.getExternalStorageDirectory().path + "/inline",
+            getExternalFilesDirs(null)[0].absolutePath + "/modules"
+        )
+    }
 
     val pattern: Pattern by lazy {
         Pattern.compile(
@@ -75,13 +67,6 @@ class InlineService : AccessibilityService() {
     private var previousText: String? = null
 
     override fun onServiceConnected() {
-        defaultPath = HashSet(
-            listOf(
-                Environment.getExternalStorageDirectory().path + "/inline",
-                getExternalFilesDirs(null)[0].absolutePath + "/modules"
-            )
-        )
-
         instance = this
         createEnvironment()
         super.onServiceConnected()
@@ -99,26 +84,33 @@ class InlineService : AccessibilityService() {
     }
 
     fun createEnvironment() {
-        environment = JsePlatform.standardGlobals().apply {
-            set("inline", CoerceJavaToLua.coerce(this@InlineService))
-            get("package").get("searchers").set(3, Searcher(this))
-        }
-
-        timer.cancel()
-        timer.purge()
-        timer = Timer()
-
         allCommands.clear()
         allWatchers.clear()
         allPreferences.clear()
         allCommandFinders.clear()
 
-        try {
-            loadModules()
-        } catch (e: IOException) {
-            notifyException(1, e)
-        } catch (e: LuaError) {
-            notifyException(1, e)
+        timer.apply {
+            cancel()
+            purge()
+        }
+
+        timer = Timer()
+
+        JsePlatform.standardGlobals().apply {
+            set("inline", CoerceJavaToLua.coerce(this@InlineService))
+            setupSearcher()
+
+            try {
+                loadModules(
+                    service = this@InlineService,
+                    sharedPreferences = defaultSharedPreferences,
+                    defaultPath = defaultPath
+                )
+            } catch (e: IOException) {
+                notifyException(1, e)
+            } catch (e: LuaError) {
+                notifyException(1, e)
+            }
         }
     }
 
@@ -175,66 +167,13 @@ class InlineService : AccessibilityService() {
         return null
     }
 
-    fun loadModules() {
-        val unloaded = defaultSharedPreferences.getStringSet(UNLOADED, HashSet())!!
-
-        assets.list(DEFAULT_ASSETS_PATH)?.forEach { fileName ->
-            if (fileName !in unloaded) {
-                val path = "$DEFAULT_ASSETS_PATH/$fileName"
-
-                val buffer = assets.open(path).use { it.readBytes() }
-                val result = environment!!.load(String(buffer), path).call()
-
-                Log.d(TAG, "Loading internal module: $path")
-
-                if (result.isfunction())
-                    result.call(
-                        CoerceJavaToLua.coerce(
-                            Module(
-                                service = this,
-                                filepath = path,
-                                isInternal = true
-                            )
-                        )
-                    )
-            }
-        }
-
-        defaultSharedPreferences.getStringSet(PATH, defaultPath)?.forEach { path ->
-            if (path !in unloaded) {
-                File(path).listFiles()?.filter { it.isFile }?.forEach { file ->
-                    val reader = BufferedReader(FileReader(file)).apply { mark(1) }
-
-                    if (reader.read() != 65279)
-                        reader.reset()
-
-                    val result = environment!!.load(reader, file.absolutePath).call()
-
-                    Log.d(TAG, "Loading module: ${file.path}")
-
-                    if (result.isfunction())
-                        result.call(
-                            CoerceJavaToLua.coerce(
-                                Module(
-                                    service = this,
-                                    filepath = file.path,
-                                    isInternal = false
-                                )
-                            )
-                        )
-                }
-            }
-        }
-    }
-
-    private fun notifyWatchers(accessibilityNodeInfo: AccessibilityNodeInfo, eventType: Int) {
+    private fun notifyWatchers(accessibilityNodeInfo: AccessibilityNodeInfo, eventType: Int) =
         allWatchers.filter { (_, value) -> (value and eventType) == eventType }
             .forEach { (key, _) ->
                 runCatching {
                     key.call(CoerceJavaToLua.coerce(accessibilityNodeInfo), LuaValue.valueOf(eventType))
                 }.onFailure { e -> notifyException(key.hashCode(), e) }
             }
-    }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val node = event.source ?: return
@@ -272,14 +211,13 @@ class InlineService : AccessibilityService() {
         }
     }
 
-    fun getSharedPreferences(name: String?): SharedPreferences =
-        getSharedPreferences(name, MODE_PRIVATE)
+    fun getSharedPreferences(name: String?): SharedPreferences = getSharedPreferences(name, MODE_PRIVATE)
 
     fun timerTask(function: LuaValue): TimerTask {
         function.checkfunction()
         return object : TimerTask() {
             override fun run() {
-                Handler(Looper.getMainLooper()).post {
+                runOnUiThread {
                     try {
                         function.call()
                     } catch (e: Exception) {
@@ -290,11 +228,12 @@ class InlineService : AccessibilityService() {
         }
     }
 
-    fun toast(text: String?) =
-        Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+    fun toast(text: String?) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
 
-    fun copyToClipboard(string: String) =
+    fun copyToClipboard(string: String) {
+        val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboardManager.setPrimaryClip(ClipData.newPlainText("Inline", string))
+    }
 
     override fun onInterrupt() {
         instance = null

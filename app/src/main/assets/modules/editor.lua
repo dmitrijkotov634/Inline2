@@ -66,10 +66,8 @@ local function fspace(input, query)
     inline:showFloatingWindow({ noLimits = true }, function(ui)
         local inputText = ui.textInput("space_" .. query:getArgs(), "Text")
 
-        ui.paddingTop = 0
-        ui.paddingBottom = 0
-
         inputText:setText(query:replaceExpression(""))
+        inputText:getEditText():setMaxLines(15)
 
         return {
             inputText,

@@ -144,7 +144,7 @@ local function fclock(_, query)
             currentSymbolIndex = currentSymbolIndex % #decorativeSymbols + 1
         end)
 
-        local close = ui.smallButton("[X] Time:", function()
+        local close = ui.smallButton("[X] Clock:", function()
             timerTask:cancel()
             ui.close()
         end)
@@ -159,7 +159,7 @@ local function fclock(_, query)
 
         close:setTextColor(closeColor)
         close:setTypeface(Typeface.MONOSPACE)
-        close:setTextSize(14)
+        close:setTextSize(17)
 
         return { { close, time } }
     end)
