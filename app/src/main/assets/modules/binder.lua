@@ -4,18 +4,16 @@ require "menu"
 local preferences = inline:getSharedPreferences "binder2"
 local enabled = inline:getDefaultSharedPreferences():getBoolean("binder", true)
 
-local Query = luajava.bindClass "com.wavecat.inline.service.Query"
+local Query = luajava.bindClass "com.wavecat.inline.service.commands.Query"
 
 local function bind(_, query)
     local args = utils.split(query:getArgs(), " ", 2)
     if #args < 2 then
-        inline:toast "Invalid arguments"
-        return
+        return inline:toast("Invalid arguments")
     end
     local data = utils.split(args[2], " ", 2)
     if not inline:getAllCommands():containsKey(data[1]) then
-        inline:toast "Command not found"
-        return
+        return inline:toast("Command not found")
     end
     preferences:edit():putString(utils.escape(args[1]), args[2]):apply()
     query:answer()
@@ -41,6 +39,18 @@ local function echo(_, query)
     query:answer(query:getArgs())
 end
 
+local function executeBinding(input, expression, bindingValue)
+    local data = utils.split(bindingValue, " ", 2)
+    local command = inline:getAllCommands():get(data[1])
+    if not command then
+        return nil
+    end
+    local callable = command:getCallable()
+    local query = Query.new(input, input:getText(), expression, data[2] or "")
+    callable(input, query)
+    return query:getText()
+end
+
 local function binder(input)
     if enabled then
         local text = input:getText()
@@ -52,20 +62,31 @@ local function binder(input)
                 text = text:gsub(
                     entry:getKey(),
                     function(expression)
-                        local data = utils.split(entry:getValue(), " ", 2)
-                        local command = inline:getAllCommands():get(data[1])
-                        if not command then
-                            return nil
-                        end
-                        local callable = command:getCallable()
-                        local query = Query.new(input, input:getText(), expression, data[2] or "")
-                        callable(input, query)
-                        return query:getText()
+                        return executeBinding(input, expression, entry:getValue())
                     end
                 )
             end
         end
     end
+end
+
+local function createUnbindMenuItem(_, key, callback)
+    return {
+        caption = "[X]",
+        action = function(_, q)
+            menu.create(q, {
+                "Unbind ",
+                key,
+                "? ",
+                { caption = "[Yes]", action = function(_, queryYes)
+                    preferences:edit():remove(key):apply()
+                    callback(_, queryYes)
+                end },
+                " ",
+                { caption = "[No]", action = callback }
+            }, callback)
+        end
+    }
 end
 
 local function binds(_, query)
@@ -83,23 +104,8 @@ local function binds(_, query)
     }
     while iterator:hasNext() do
         local entry = iterator:next()
-        result[#result + 1] = {
-            caption = "[X]",
-            action = function(_, q)
-                menu.create(q, {
-                    "Unbind ",
-                    entry:getKey(),
-                    "? ",
-                    { caption = "[Yes]", action = function(_, queryYes)
-                        preferences:edit():remove(entry:getKey()):apply()
-                        binds(_, queryYes)
-                    end },
-                    " ",
-                    { caption = "[No]", action = binds }
-                }, binds)
-            end
-        }
-        result[#result + 1] = " " .. entry:getKey() .. " -> " .. entry:getValue() .. "\n"
+        table.insert(result, createUnbindMenuItem(query, entry:getKey(), binds))
+        table.insert(result, " " .. entry:getKey() .. " -> " .. entry:getValue() .. "\n")
     end
     menu.create(query, result, binds)
 end

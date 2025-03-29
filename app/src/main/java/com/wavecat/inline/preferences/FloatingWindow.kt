@@ -1,4 +1,4 @@
-@file:Suppress("unused")
+@file:Suppress("unused", "MemberVisibilityCanBePrivate")
 
 package com.wavecat.inline.preferences
 
@@ -21,6 +21,7 @@ import com.wavecat.inline.extensions.zeroArgFunction
 import com.wavecat.inline.service.InlineService.Companion.requireService
 import com.wavecat.inline.utils.dp
 import org.luaj.vm2.LuaValue
+import org.luaj.vm2.LuaValue.valueOf
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
 
@@ -48,6 +49,7 @@ class FloatingWindow(private val context: Context) {
 
     private val builder = Builder(context = context).apply {
         set("windowManager", CoerceJavaToLua.coerce(mWindowManager))
+        set("isFocused", zeroArgFunction { valueOf(!isNotFocused()) })
         set("close", zeroArgFunction {
             close()
             LuaValue.NIL
@@ -175,6 +177,11 @@ class FloatingWindow(private val context: Context) {
                 cornerRadius = this@FloatingWindow.cornerRadius.dp.toFloat()
             }
         }
+    }
+
+    fun isNotFocused(): Boolean {
+        val flags = (mLayout?.layoutParams as? WindowManager.LayoutParams)?.flags
+        return flags?.and(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE) != 0
     }
 
     fun close() {

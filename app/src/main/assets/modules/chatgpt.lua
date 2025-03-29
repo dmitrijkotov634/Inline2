@@ -172,6 +172,16 @@ local function cask(_, query)
     end)
 end
 
+local function insertText(ui, text)
+    local node = inline:getLatestAccessibilityEvent():getSource()
+
+    if ui:isFocused() or node:getPackageName() == inline:getPackageName() then
+        return inline:toast("Please focus on the desired input")
+    end
+
+    inline:insertText(node, text)
+end
+
 local function fask(_, query)
     local args = getArgs(query)
 
@@ -193,8 +203,8 @@ local function fask(_, query)
 
                 ui.spacer(8),
 
-                ui.smallButton("Copy", function()
-                    inline:copyToClipboard(text:getText())
+                ui.smallButton("Paste", function()
+                    insertText(ui, text:getText())
                 end)
             }
         }
@@ -237,8 +247,8 @@ local function fgpt(_, query)
                 askButton,
                 ui.spacer(8),
 
-                ui.smallButton("Copy", function()
-                    inline:copyToClipboard(text:getText())
+                ui.smallButton("Paste", function()
+                    insertText(ui, text:getText())
                 end),
 
                 ui.spacer(8),

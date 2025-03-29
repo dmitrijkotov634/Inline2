@@ -1,4 +1,4 @@
-package com.wavecat.inline.service
+package com.wavecat.inline.service.commands
 
 import android.view.accessibility.AccessibilityNodeInfo
 import com.wavecat.inline.service.InlineService.Companion.setSelection

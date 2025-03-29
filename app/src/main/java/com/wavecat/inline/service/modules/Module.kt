@@ -1,11 +1,13 @@
 @file:Suppress("unused", "MemberVisibilityCanBePrivate")
 
-package com.wavecat.inline.service
+package com.wavecat.inline.service.modules
 
 import android.content.SharedPreferences
 import android.util.Log
 import com.wavecat.inline.preferences.PreferencesItem
+import com.wavecat.inline.service.InlineService
 import com.wavecat.inline.service.InlineService.Companion.TYPE_TEXT_CHANGED
+import com.wavecat.inline.service.commands.Command
 import org.luaj.vm2.LuaValue
 
 class Module(
@@ -16,12 +18,14 @@ class Module(
     var category: String? = null
 
     fun registerPreferences(sharedPreferences: SharedPreferences, builder: LuaValue) {
+        val categoryName = category ?: filepath
+        var categoryPreferences = service.allPreferences[categoryName]
+
         Log.d("Module", "Registering preferences for category: $category")
-        var categoryPreferences = service.allPreferences[category]
 
         if (categoryPreferences == null) {
             categoryPreferences = HashSet()
-            service.allPreferences[category] = categoryPreferences
+            service.allPreferences[categoryName] = categoryPreferences
         }
 
         categoryPreferences.add(PreferencesItem(sharedPreferences, builder))

@@ -1,4 +1,4 @@
-package com.wavecat.inline.service
+package com.wavecat.inline.service.commands
 
 import org.luaj.vm2.LuaValue
 

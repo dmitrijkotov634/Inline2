@@ -17,8 +17,7 @@
 
     <string name="loader_availability">Loader availability</string>
 
-    <string name="attention">Attention</string>
-    <string name="unknown_sources">Downloading modules from unknown sources may put your personal data at risk</string>
-
     <string name="preferences">Preferences</string>
+    <string name="modules">Modules</string>
+    <string name="modules_hint">Manage internal modules</string>
 </resources>

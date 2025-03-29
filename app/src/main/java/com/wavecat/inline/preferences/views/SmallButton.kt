@@ -1,4 +1,4 @@
-@file:Suppress("unused", "ViewConstructor")
+@file:Suppress("unused", "ViewConstructor", "MemberVisibilityCanBePrivate")
 
 package com.wavecat.inline.preferences.views
 
@@ -25,12 +25,12 @@ class SmallButton : MaterialButton, Preference {
         null,
         com.google.android.material.R.attr.borderlessButtonStyle
     ) {
-        init(text, null)
+        init(text, LuaValue.NIL)
     }
 
-    private fun init(text: String, listener: LuaValue?) {
+    private fun init(text: String, listener: LuaValue) {
         setText(text)
-        setPaddingRelative(6.dp, 6.dp, 6.dp, 6.dp)
+        setPaddingRelative(8.dp, 8.dp, 8.dp, 8.dp)
 
         insetTop = 0
         insetBottom = 0
@@ -40,13 +40,15 @@ class SmallButton : MaterialButton, Preference {
         minWidth = 0
         background = null
 
-        listener?.let {
-            setOnClickListener { _: View? -> it.call(CoerceJavaToLua.coerce(this)) }
-        }
+        setListener(listener)
     }
 
     fun setListener(listener: LuaValue): SmallButton {
-        setOnClickListener { _: View? -> listener.call(CoerceJavaToLua.coerce(this)) }
+        setOnClickListener { _: View? ->
+            if (listener.isfunction())
+                listener.call(CoerceJavaToLua.coerce(this))
+        }
+
         return this
     }
 

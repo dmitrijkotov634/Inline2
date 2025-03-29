@@ -1,13 +1,6 @@
 require "http"
 require "colorama"
 
-local preferences = inline:getDefaultSharedPreferences()
-
-if not preferences:getBoolean("loader_module", false) then
-    return function()
-    end
-end
-
 local dirPath
 
 local function delete(_, query)

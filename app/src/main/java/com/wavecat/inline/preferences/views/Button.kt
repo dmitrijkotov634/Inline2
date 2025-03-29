@@ -1,4 +1,4 @@
-@file:Suppress("unused")
+@file:Suppress("unused", "MemberVisibilityCanBePrivate")
 
 package com.wavecat.inline.preferences.views
 
@@ -15,7 +15,7 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
 class Button : MaterialButton, Preference {
     constructor(context: Context, text: String, listener: LuaValue) : super(context) {
         setText(text)
-        setOnClickListener { _: View? -> listener.call(CoerceJavaToLua.coerce(this)) }
+        setListener(listener)
     }
 
     constructor(context: Context, text: String) : super(context) {
@@ -23,7 +23,11 @@ class Button : MaterialButton, Preference {
     }
 
     fun setListener(listener: LuaValue): Button {
-        setOnClickListener { _: View? -> listener.call(CoerceJavaToLua.coerce(this)) }
+        setOnClickListener { _: View? ->
+            if (listener.isfunction())
+                listener.call(CoerceJavaToLua.coerce(this))
+        }
+
         return this
     }
 

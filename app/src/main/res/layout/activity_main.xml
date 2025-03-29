@@ -28,7 +28,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/turn_on"
-        app:layout_constraintBottom_toTopOf="@+id/reload_service"
+        app:layout_constraintBottom_toTopOf="@+id/internal_modules"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
@@ -40,7 +40,19 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/reload"
-        app:layout_constraintBottom_toTopOf="@+id/loader"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/internal_modules" />
+
+    <Button
+        android:id="@+id/internal_modules"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/modules"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/reload_service"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
@@ -66,15 +78,14 @@
         app:layout_constraintStart_toStartOf="@+id/reload_service"
         app:layout_constraintTop_toBottomOf="@+id/reload_service" />
 
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/loader"
-        android:layout_width="wrap_content"
+    <TextView
+        android:id="@+id/hint1"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/loader_availability"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/reload_service" />
+        android:gravity="center_horizontal"
+        android:text="@string/modules_hint"
+        app:layout_constraintEnd_toEndOf="@+id/internal_modules"
+        app:layout_constraintStart_toStartOf="@+id/internal_modules"
+        app:layout_constraintTop_toBottomOf="@+id/internal_modules" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

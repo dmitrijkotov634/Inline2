@@ -11,7 +11,7 @@ android {
         minSdk 21
         targetSdk 35
         versionCode 16
-        versionName "1.0"
+        versionName "1.1"
     }
 
     buildTypes {
@@ -29,6 +29,7 @@ android {
     buildFeatures {
         viewBinding true
     }
+
     namespace 'com.wavecat.inline'
 
     kotlinOptions {
