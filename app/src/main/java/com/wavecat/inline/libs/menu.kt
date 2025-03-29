@@ -8,7 +8,7 @@ import com.wavecat.inline.extensions.oneArgFunction
 import com.wavecat.inline.extensions.threeArgFunction
 import com.wavecat.inline.service.InlineService
 import com.wavecat.inline.service.InlineService.Companion.requireService
-import com.wavecat.inline.service.Query
+import com.wavecat.inline.service.commands.Query
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.TwoArgFunction

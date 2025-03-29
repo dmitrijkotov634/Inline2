@@ -74,7 +74,13 @@ local function fspace(input, query)
             ui.spacer(8),
             {
                 ui.smallButton("Paste", function()
-                    inline:setText(input, inputText:getText())
+                    local node = inline:getLatestAccessibilityEvent():getSource()
+
+                    if ui:isFocused() or node:getPackageName() == inline:getPackageName() then
+                        return inline:toast("Please focus on the desired input")
+                    end
+
+                    inline:insertText(node, inputText:getText())
                 end),
 
                 ui.spacer(8),

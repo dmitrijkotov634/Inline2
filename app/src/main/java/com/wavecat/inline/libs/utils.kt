@@ -5,7 +5,7 @@ package com.wavecat.inline.libs
 import com.wavecat.inline.extensions.oneArgFunction
 import com.wavecat.inline.extensions.threeArgFunction
 import com.wavecat.inline.extensions.twoArgFunction
-import com.wavecat.inline.service.Query
+import com.wavecat.inline.service.commands.Query
 import com.wavecat.inline.utils.ArgumentTokenizer
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.TwoArgFunction

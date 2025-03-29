@@ -2,41 +2,36 @@
 
 package com.wavecat.inline.service
 
-import android.Manifest
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.SharedPreferences
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import android.view.ContextThemeWrapper
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.os.bundleOf
 import androidx.preference.PreferenceManager
 import com.google.android.material.color.DynamicColors
 import com.wavecat.inline.R
 import com.wavecat.inline.preferences.FloatingWindow
 import com.wavecat.inline.preferences.PreferencesItem
+import com.wavecat.inline.service.commands.Command
+import com.wavecat.inline.service.commands.Query
+import com.wavecat.inline.service.modules.LuaSearcher
+import com.wavecat.inline.service.modules.loadModules
 import com.wavecat.inline.utils.runOnUiThread
-import org.luaj.vm2.LuaError
 import org.luaj.vm2.LuaString
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 import org.luaj.vm2.lib.jse.JsePlatform
-import java.io.IOException
 import java.util.Timer
-import java.util.TimerTask
 import java.util.regex.Pattern
+import kotlin.concurrent.timerTask
 
 class InlineService : AccessibilityService() {
     val defaultSharedPreferences: SharedPreferences by lazy {
@@ -45,10 +40,12 @@ class InlineService : AccessibilityService() {
 
     var timer = Timer()
 
-    val allCommands: HashMap<String, Command> = hashMapOf()
-    val allWatchers: HashMap<LuaValue, Int> = hashMapOf()
-    val allPreferences: HashMap<String?, HashSet<PreferencesItem>> = hashMapOf()
-    val allCommandFinders: MutableSet<LuaValue> = hashSetOf()
+    val allCommands: MutableMap<String, Command> = mutableMapOf()
+    val allWatchers: MutableMap<LuaValue, Int> = mutableMapOf()
+    val allPreferences: MutableMap<String?, HashSet<PreferencesItem>> = mutableMapOf()
+    val allCommandFinders: MutableSet<LuaValue> = mutableSetOf()
+
+    var latestAccessibilityEvent: AccessibilityEvent? = null
 
     val defaultPath by lazy {
         hashSetOf(
@@ -89,63 +86,28 @@ class InlineService : AccessibilityService() {
         allPreferences.clear()
         allCommandFinders.clear()
 
-        timer.apply {
-            cancel()
-            purge()
-        }
-
+        timer.apply { cancel(); purge() }
         timer = Timer()
 
         JsePlatform.standardGlobals().apply {
             set("inline", CoerceJavaToLua.coerce(this@InlineService))
-            setupSearcher()
+            get("package").get("searchers").set(3, LuaSearcher(this))
 
-            try {
+            runCatching {
                 loadModules(
                     service = this@InlineService,
                     sharedPreferences = defaultSharedPreferences,
                     defaultPath = defaultPath
                 )
-            } catch (e: IOException) {
-                notifyException(1, e)
-            } catch (e: LuaError) {
-                notifyException(1, e)
+            }.onFailure {
+                notifyException(1, it)
             }
         }
     }
 
-    fun notifyException(id: Int, throwable: Throwable) {
-        val notificationManager = NotificationManagerCompat.from(this)
+    fun toast(text: String?) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name: CharSequence = getString(R.string.channel_name)
-            val description = getString(R.string.channel_description)
-
-            val importance = NotificationManager.IMPORTANCE_LOW
-
-            val channel = NotificationChannel(CHANNEL_ID, name, importance)
-            channel.description = description
-
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.app_name))
-            .setContentText(throwable.message)
-            .setStyle(NotificationCompat.BigTextStyle())
-            .setSmallIcon(R.drawable.ic_baseline_error_24)
-            .build()
-
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            notificationManager.notify(id, notification)
-        }
-
-        throwable.printStackTrace()
-    }
+    fun getSharedPreferences(name: String?): SharedPreferences = getSharedPreferences(name, MODE_PRIVATE)
 
     fun isFloatingWindowSupported() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1
 
@@ -177,6 +139,8 @@ class InlineService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val node = event.source ?: return
+
+        latestAccessibilityEvent = event
 
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED)
             return notifyWatchers(node, event.eventType)
@@ -211,24 +175,15 @@ class InlineService : AccessibilityService() {
         }
     }
 
-    fun getSharedPreferences(name: String?): SharedPreferences = getSharedPreferences(name, MODE_PRIVATE)
-
-    fun timerTask(function: LuaValue): TimerTask {
-        function.checkfunction()
-        return object : TimerTask() {
-            override fun run() {
-                runOnUiThread {
-                    try {
-                        function.call()
-                    } catch (e: Exception) {
-                        notifyException(function.hashCode(), e)
-                    }
-                }
+    fun timerTask(function: LuaValue) = timerTask {
+        runOnUiThread {
+            try {
+                function.checkfunction().call()
+            } catch (e: Exception) {
+                notifyException(function.hashCode(), e)
             }
         }
     }
-
-    fun toast(text: String?) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
 
     fun copyToClipboard(string: String) {
         val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -240,7 +195,6 @@ class InlineService : AccessibilityService() {
     }
 
     companion object {
-        @JvmStatic
         var instance: InlineService? = null
             private set
 
@@ -248,13 +202,8 @@ class InlineService : AccessibilityService() {
 
         const val PATH: String = "path"
         const val PATTERN: String = "pattern"
-        const val UNLOADED: String = "unloaded"
 
         const val TAG: String = "InlineService"
-
-        const val DEFAULT_ASSETS_PATH: String = "modules"
-
-        private const val CHANNEL_ID = "error"
 
         @JvmStatic
         val TYPE_TEXT_CHANGED: Int = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
@@ -293,5 +242,32 @@ class InlineService : AccessibilityService() {
         @JvmStatic
         fun paste(accessibilityNodeInfo: AccessibilityNodeInfo): Boolean =
             accessibilityNodeInfo.performAction(AccessibilityNodeInfo.ACTION_PASTE)
+
+        @JvmStatic
+        fun getText(accessibilityNodeInfo: AccessibilityNodeInfo): String {
+            val rawText = (accessibilityNodeInfo.text ?: "").toString()
+
+            return when {
+                rawText.isNotEmpty() && accessibilityNodeInfo.textSelectionStart == -1 -> ""
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                        (accessibilityNodeInfo.isShowingHintText || accessibilityNodeInfo.hintText == rawText) -> ""
+
+                else -> rawText
+            }
+        }
+
+        @JvmStatic
+        fun insertText(accessibilityNodeInfo: AccessibilityNodeInfo, textToInsert: String) {
+            accessibilityNodeInfo.refresh()
+
+            val start = accessibilityNodeInfo.textSelectionStart.takeIf { it != -1 } ?: 0
+            val end = accessibilityNodeInfo.textSelectionEnd.takeIf { it != -1 } ?: start
+
+            val currentText = getText(accessibilityNodeInfo)
+            val newText = currentText.substring(0, start) + textToInsert + currentText.substring(end)
+
+            setText(accessibilityNodeInfo, newText)
+            setSelection(accessibilityNodeInfo, start + textToInsert.length, start + textToInsert.length)
+        }
     }
 }

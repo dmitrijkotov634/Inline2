@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.CompoundButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -19,11 +18,11 @@ import com.google.android.material.color.DynamicColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.wavecat.inline.databinding.ActivityMainBinding
 import com.wavecat.inline.preferences.PreferencesDialog
-import com.wavecat.inline.service.InlineService
 import com.wavecat.inline.service.InlineService.Companion.instance
 import com.wavecat.inline.service.InlineService.Companion.requireService
-import java.io.File
-import java.io.IOException
+import com.wavecat.inline.service.modules.DEFAULT_ASSETS_PATH
+import com.wavecat.inline.service.modules.UNLOADED
+import com.wavecat.inline.service.modules.defaultUnloaded
 
 @Suppress("unused")
 class MainActivity : AppCompatActivity() {
@@ -51,60 +50,35 @@ class MainActivity : AppCompatActivity() {
         }
 
         val unloaded: MutableSet<String> = HashSet(
-            preferences.getStringSet(InlineService.UNLOADED, hashSetOf())!!
+            preferences.getStringSet(UNLOADED, defaultUnloaded)!!
         )
 
-        binding.reloadService.setOnLongClickListener {
-            try {
-                val internalModules = resources.assets.list(InlineService.DEFAULT_ASSETS_PATH)
-                val enabled = BooleanArray(internalModules!!.size)
+        binding.internalModules.setOnClickListener {
+            val internalModules = resources.assets.list(DEFAULT_ASSETS_PATH)
+            val enabled = BooleanArray(internalModules!!.size)
 
-                for (index in internalModules.indices)
-                    enabled[index] = !unloaded.contains(internalModules[index])
+            for (index in internalModules.indices)
+                enabled[index] = !unloaded.contains(internalModules[index])
 
-                MaterialAlertDialogBuilder(this@MainActivity)
-                    .setTitle(R.string.internal_modules)
-                    .setMultiChoiceItems(
-                        internalModules,
-                        enabled
-                    ) { _: DialogInterface?, index: Int, value: Boolean ->
-                        if (!value)
-                            unloaded.add(internalModules[index])
-                        else
-                            unloaded.remove(internalModules[index])
-                    }
-                    .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int ->
-                        preferences.edit()
-                            .putStringSet(InlineService.UNLOADED, unloaded)
-                            .apply()
+            MaterialAlertDialogBuilder(this@MainActivity)
+                .setTitle(R.string.internal_modules)
+                .setMultiChoiceItems(
+                    internalModules,
+                    enabled
+                ) { _: DialogInterface?, index: Int, value: Boolean ->
+                    if (!value)
+                        unloaded.add(internalModules[index])
+                    else
+                        unloaded.remove(internalModules[index])
+                }
+                .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int ->
+                    preferences.edit()
+                        .putStringSet(UNLOADED, unloaded)
+                        .apply()
 
-                        binding.reloadService.callOnClick()
-                    }
-                    .show()
-            } catch (e: IOException) {
-                e.printStackTrace()
-            }
-
-            true
-        }
-
-        binding.loader.isChecked = preferences.getBoolean(LOADER_PREF, false)
-        binding.loader.setOnCheckedChangeListener { _: CompoundButton?, isChecked: Boolean ->
-            if (isChecked) {
-                MaterialAlertDialogBuilder(this@MainActivity)
-                    .setTitle(R.string.attention)
-                    .setMessage(R.string.unknown_sources)
-                    .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int -> }
-                    .show()
-
-                File(getExternalFilesDirs(null)[0].absolutePath + "/modules").mkdirs()
-            }
-
-            preferences.edit()
-                .putBoolean(LOADER_PREF, isChecked)
-                .apply()
-
-            binding.reloadService.callOnClick()
+                    binding.reloadService.callOnClick()
+                }
+                .show()
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
