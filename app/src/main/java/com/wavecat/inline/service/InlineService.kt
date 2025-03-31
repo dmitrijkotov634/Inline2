@@ -26,6 +26,7 @@ import com.wavecat.inline.service.commands.Command
 import com.wavecat.inline.service.commands.Query
 import com.wavecat.inline.service.modules.LuaSearcher
 import com.wavecat.inline.service.modules.loadModules
+import com.wavecat.inline.utils.dp
 import com.wavecat.inline.utils.runOnUiThread
 import org.luaj.vm2.LuaString
 import org.luaj.vm2.LuaValue
@@ -47,8 +48,6 @@ class InlineService : AccessibilityService() {
     val allWatchers: MutableMap<LuaValue, Int> = mutableMapOf()
     val allPreferences: MutableMap<String?, HashSet<PreferencesItem>> = mutableMapOf()
     val allCommandFinders: MutableSet<LuaValue> = mutableSetOf()
-
-    var latestAccessibilityEvent: AccessibilityEvent? = null
 
     val defaultPath by lazy {
         hashSetOf(
@@ -117,12 +116,7 @@ class InlineService : AccessibilityService() {
     fun showFloatingWindow(config: LuaValue, init: LuaValue): FloatingWindow? {
         if (isFloatingWindowSupported()) {
             return FloatingWindow(
-                DynamicColors.wrapContextIfAvailable(
-                    ContextThemeWrapper(
-                        this,
-                        R.style.Theme_Inline
-                    )
-                )
+                DynamicColors.wrapContextIfAvailable(ContextThemeWrapper(this, R.style.Theme_Inline))
             ).apply {
                 configure(config)
                 create(init)
@@ -142,8 +136,6 @@ class InlineService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val node = event.source ?: return
-
-        latestAccessibilityEvent = event
 
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED)
             return notifyWatchers(node, event.eventType)
@@ -283,5 +275,8 @@ class InlineService : AccessibilityService() {
 
         @JvmStatic
         fun getScreenHeight(): Int = Resources.getSystem().displayMetrics.heightPixels
+
+        @JvmStatic
+        fun dpToPx(value: Int): Int = value.dp
     }
 }

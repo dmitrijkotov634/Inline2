@@ -1,3 +1,5 @@
+local Gravity = luajava.bindClass("android.view.Gravity")
+
 local function createUiMenu(ui)
     local callback = function(v)
         inline:toast(tostring(v))
@@ -26,27 +28,27 @@ end
 
 local function createFloatingWindow(input, query)
     query:answer()
+    local rect = inline:getBoundsInScreen(input)
     inline:showFloatingWindow({
         noLimits = true,
+        positionX = rect.left,
+        positionY = inline:getScreenHeight() - rect.top + 50,
+        gravity = bit32.bor(Gravity.BOTTOM, Gravity.LEFT)
     }, function(ui)
         local xText = ui.text("")
         local yText = ui.text("")
-        local leftText = ui.text("")
-        local topText = ui.text("")
-        local rightText = ui.text("")
-        local bottomText = ui.text("")
+        local leftText = ui.text(tostring(rect.left))
+        local topText = ui.text(tostring(rect.top))
+        local rightText = ui.text(tostring(rect.right))
+        local bottomText = ui.text(tostring(rect.bottom))
         ui.onMove = function(x, y)
             xText:setText(tostring(x))
             yText:setText(tostring(y))
             input:refresh()
-            local rect = inline:getBoundsInScreen(input)
-            leftText:setText(tostring(rect.left))
-            rightText:setText(tostring(rect.right))
-            bottomText:setText(tostring(rect.bottom))
-            topText:setText(tostring(rect.top))
         end
         return { { "X: ", xText, " Y: ", yText },
-                 { "Left: ", leftText, " Top: ", topText, " Right: ", rightText, " Bottom: ", bottomText } }
+                 { "Left: ", leftText, " Top: ", topText, " Right: ", rightText, " Bottom: ", bottomText },
+                 { "Width: " .. inline:getScreenWidth() .. " Height: " .. inline:getScreenHeight() } }
     end)
 end
 

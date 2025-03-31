@@ -7,6 +7,8 @@ local DEFAULT_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 local TimeUnit = luajava.bindClass "java.util.concurrent.TimeUnit"
 local preferences = inline:getDefaultSharedPreferences()
 
+local latestInput
+
 local client = http(
     http.newBuilder()
         :readTimeout(60, TimeUnit.SECONDS)
@@ -173,13 +175,11 @@ local function cask(_, query)
 end
 
 local function insertText(ui, text)
-    local node = inline:getLatestAccessibilityEvent():getSource()
-
-    if node == nil or ui:isFocused() or node:getPackageName() == inline:getPackageName() then
+    if latestInput == nil or ui:isFocused() or latestInput:getPackageName() == inline:getPackageName() then
         return inline:toast("Please focus on the desired input")
     end
 
-    inline:insertText(node, text)
+    inline:insertText(latestInput, text)
 end
 
 local function fask(_, query)
@@ -288,4 +288,7 @@ return function(module)
     end
 
     module:registerPreferences(getPreferences)
+    module:registerWatcher(function(input)
+        latestInput = input
+    end)
 end
