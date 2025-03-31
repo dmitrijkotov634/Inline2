@@ -27,5 +27,5 @@ open class Spacer(context: Context, private val padding: Int) : View(context), P
         setMeasuredDimension(finalWidth, finalHeight)
     }
 
-    override fun getView(preferences: SharedPreferences?): View = this
+    override fun getView(preferences: SharedPreferences?, requestFocus: () -> Unit): View = this
 }

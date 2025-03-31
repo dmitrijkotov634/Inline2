@@ -1,4 +1,4 @@
-@file:Suppress("unused", "MemberVisibilityCanBePrivate")
+@file:Suppress("unused", "MemberVisibilityCanBePrivate", "ClickableViewAccessibility")
 
 package com.wavecat.inline.preferences
 
@@ -10,6 +10,7 @@ import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -17,6 +18,7 @@ import android.view.WindowManager
 import android.widget.LinearLayout
 import androidx.annotation.RequiresApi
 import com.wavecat.inline.extensions.forEach
+import com.wavecat.inline.extensions.oneArgFunction
 import com.wavecat.inline.extensions.zeroArgFunction
 import com.wavecat.inline.service.InlineService.Companion.requireService
 import com.wavecat.inline.utils.dp
@@ -28,10 +30,15 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
 class FloatingWindow(private val context: Context) {
 
-    private var sharedPreferences = requireService().defaultSharedPreferences
-    private var cornerRadius = 16
-    private var padding = intArrayOf(16, 16, 16, 16)
-    private var backgroundColor: Int = Color.WHITE
+    var sharedPreferences = requireService().defaultSharedPreferences
+    var cornerRadius = 16
+    var padding = intArrayOf(16, 16, 16, 16)
+    var backgroundColor: Int = Color.WHITE
+
+    var positionX = 0
+    var positionY = 0
+
+    var windowGravity = Gravity.CENTER
 
     init {
         val typedValue = TypedValue()
@@ -40,12 +47,13 @@ class FloatingWindow(private val context: Context) {
         }
     }
 
-    private var autoFocus = true
-    private var noLimits = false
-    private var transparent = false
+    var autoFocus = true
+    var noLimits = false
+    var noBackground = false
+    var allowTouchMove = true
 
-    private val mWindowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-    private var mLayout: LinearLayout? = null
+    val mWindowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    var mLayout: LinearLayout? = null
 
     private val builder = Builder(context = context).apply {
         set("windowManager", CoerceJavaToLua.coerce(mWindowManager))
@@ -54,31 +62,47 @@ class FloatingWindow(private val context: Context) {
             close()
             LuaValue.NIL
         })
+
+        set("onMove", oneArgFunction { LuaValue.NIL })
+        set("onFocusChanged", oneArgFunction { LuaValue.NIL })
+        set("onClose", zeroArgFunction { LuaValue.NIL })
     }
 
     fun configure(config: LuaValue) {
         with(config) {
             cornerRadius = get("cornerRadius").optint(cornerRadius)
-            padding[0] = get("paddingLeft").optint(padding[0])
-            padding[1] = get("paddingTop").optint(padding[1])
-            padding[2] = get("paddingRight").optint(padding[2])
-            padding[3] = get("paddingBottom").optint(padding[3])
+
+            padding = intArrayOf(
+                config.get("paddingLeft").optint(padding[0]),
+                config.get("paddingTop").optint(padding[1]),
+                config.get("paddingRight").optint(padding[2]),
+                config.get("paddingBottom").optint(padding[3])
+            )
+
             backgroundColor = get("backgroundColor").optint(backgroundColor)
             autoFocus = get("autoFocus").optboolean(autoFocus)
+            allowTouchMove = get("allowTouchMove").optboolean(allowTouchMove)
             noLimits = get("noLimits").optboolean(noLimits)
-            transparent = get("transparent").optboolean(transparent)
+            noBackground = get("noBackground").optboolean(noBackground)
             sharedPreferences = get("sharedPreferences").optuserdata(sharedPreferences) as SharedPreferences
+
+            positionX = get("positionX").optint(positionX)
+            positionY = get("positionY").optint(positionY)
+            windowGravity = get("gravity").optint(windowGravity)
+
+            arrayOf("onMove", "onFocusChanged", "onClose").forEach { key ->
+                config.get(key).takeIf { !it.isnil() }?.let { builder.set(key, it) }
+            }
         }
     }
 
-    @SuppressLint("ClickableViewAccessibility")
     fun create(init: LuaValue) {
         if (mLayout != null) return
 
         mLayout = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(padding[0].dp, padding[1].dp, padding[2].dp, padding[3].dp)
-            if (!transparent) background = createBackgroundDrawable()
+            if (!noBackground) background = createBackgroundDrawable()
         }
 
         builder.set("layout", CoerceJavaToLua.coerce(mLayout))
@@ -91,6 +115,7 @@ class FloatingWindow(private val context: Context) {
             private var initialTouchX = 0f
             private var initialTouchY = 0f
 
+            @SuppressLint("ClickableViewAccessibility", "RtlHardcoded")
             override fun onTouch(v: View, event: MotionEvent): Boolean {
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
@@ -99,18 +124,35 @@ class FloatingWindow(private val context: Context) {
                         initialTouchX = event.rawX
                         initialTouchY = event.rawY
 
-                        if (autoFocus) {
-                            lp.flags = lp.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
-                            mWindowManager.updateViewLayout(mLayout, lp)
-                        }
-
                         return true
                     }
 
                     MotionEvent.ACTION_MOVE -> {
-                        lp.x = initialX + (event.rawX - initialTouchX).toInt()
-                        lp.y = initialY + (event.rawY - initialTouchY).toInt()
-                        mWindowManager.updateViewLayout(mLayout, lp)
+                        if (allowTouchMove) {
+                            val deltaX = (event.rawX - initialTouchX).toInt()
+                            val deltaY = (event.rawY - initialTouchY).toInt()
+
+                            when {
+                                lp.gravity and Gravity.RIGHT == Gravity.RIGHT -> {
+                                    lp.x = initialX - deltaX
+                                    lp.y = initialY + deltaY
+                                }
+
+                                lp.gravity and Gravity.BOTTOM == Gravity.BOTTOM -> {
+                                    lp.x = initialX + deltaX
+                                    lp.y = initialY - deltaY
+                                }
+
+                                else -> {
+                                    lp.x = initialX + deltaX
+                                    lp.y = initialY + deltaY
+                                }
+                            }
+
+                            mWindowManager.updateViewLayout(mLayout, lp)
+                        }
+
+                        builder.get("onMove").takeIf { !it.isnil() }?.call(valueOf(lp.x), valueOf(lp.y))
                         return true
                     }
 
@@ -118,6 +160,7 @@ class FloatingWindow(private val context: Context) {
                         if (autoFocus) {
                             lp.flags = lp.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                             mWindowManager.updateViewLayout(mLayout, lp)
+                            builder.get("onFocusChanged").takeIf { !it.isnil() }?.call(valueOf(false))
                         }
 
                         return true
@@ -140,16 +183,16 @@ class FloatingWindow(private val context: Context) {
     private fun addPreferenceToLayout(value: LuaValue, lp: WindowManager.LayoutParams) {
         val item = castPreference(context, value)
 
-        if (autoFocus) {
-            item.setWindowFocusListener {
+        val view = item.getView(sharedPreferences) {
+            if (autoFocus) {
                 lp.flags = lp.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
                 mWindowManager.updateViewLayout(mLayout, lp)
+                builder.get("onFocusChanged").takeIf { !it.isnil() }?.call(valueOf(true))
             }
         }
-
-        val view = item.getView(sharedPreferences).apply {
-            if (parent != null) (parent as ViewGroup).removeView(this)
-        }
+            .apply {
+                if (parent != null) (parent as ViewGroup).removeView(this)
+            }
 
         mLayout?.addView(view)
     }
@@ -167,6 +210,9 @@ class FloatingWindow(private val context: Context) {
         ).apply {
             if (noLimits) flags = flags or WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+            x = positionX
+            y = positionY
+            gravity = windowGravity
         }
     }
 
@@ -185,9 +231,10 @@ class FloatingWindow(private val context: Context) {
     }
 
     fun close() {
-        mLayout?.let {
+        mLayout?.let { layout ->
+            builder.get("onClose").takeIf { !it.isnil() }?.call()
             builder.set("layout", LuaValue.NIL)
-            mWindowManager.removeView(it)
+            mWindowManager.removeView(layout)
             mLayout = null
         }
     }

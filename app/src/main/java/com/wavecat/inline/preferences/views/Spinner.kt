@@ -61,7 +61,7 @@ class Spinner(context: Context?, set: LuaTable) : AppCompatSpinner(context!!), P
         return adapter
     }
 
-    override fun getView(preferences: SharedPreferences?): View {
+    override fun getView(preferences: SharedPreferences?, requestFocus: () -> Unit): View {
         if (sharedKey != null && preferences != null) {
             userSelect = false
             setSelection(choices.indexOf(preferences.getString(sharedKey, "")))

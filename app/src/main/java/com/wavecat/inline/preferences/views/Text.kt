@@ -13,5 +13,5 @@ class Text(context: Context, text: String) : AppCompatTextView(context), Prefere
         setText(text)
     }
 
-    override fun getView(preferences: SharedPreferences?): View = this
+    override fun getView(preferences: SharedPreferences?, requestFocus: () -> Unit): View = this
 }

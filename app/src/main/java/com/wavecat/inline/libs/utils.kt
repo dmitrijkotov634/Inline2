@@ -7,6 +7,7 @@ import com.wavecat.inline.extensions.threeArgFunction
 import com.wavecat.inline.extensions.twoArgFunction
 import com.wavecat.inline.service.commands.Query
 import com.wavecat.inline.utils.ArgumentTokenizer
+import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.TwoArgFunction
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
@@ -20,9 +21,11 @@ class utils : TwoArgFunction() {
             val regexStr = regex.checkjstring().toRegex()
             val limitVal = limit.optint(0)
 
-            CoerceJavaToLua.coerce(
-                str.split(regexStr, limitVal).toTypedArray()
-            )
+            LuaTable().apply {
+                str.split(regexStr, limitVal).forEachIndexed { index, s ->
+                    set(index + 1, LuaValue.valueOf(s))
+                }
+            }
         }
 
         library["escape"] = oneArgFunction { string ->

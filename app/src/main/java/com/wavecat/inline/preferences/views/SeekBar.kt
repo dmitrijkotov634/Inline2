@@ -54,7 +54,7 @@ class SeekBar : AppCompatSeekBar, Preference {
         return this
     }
 
-    override fun getView(preferences: SharedPreferences?): View {
+    override fun getView(preferences: SharedPreferences?, requestFocus: () -> Unit): View {
         setOnSeekBarChangeListener(null)
 
         sharedKey?.let {

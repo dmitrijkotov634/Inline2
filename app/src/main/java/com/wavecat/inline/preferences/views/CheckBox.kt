@@ -51,7 +51,7 @@ class CheckBox : MaterialCheckBox, Preference {
         return this
     }
 
-    override fun getView(preferences: SharedPreferences?): View {
+    override fun getView(preferences: SharedPreferences?, requestFocus: () -> Unit): View {
         setOnCheckedChangeListener(null)
 
         sharedKey?.let {
