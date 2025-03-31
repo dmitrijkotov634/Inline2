@@ -3,6 +3,8 @@ require "utils"
 
 local Gravity = luajava.bindClass("android.view.Gravity")
 
+local latestInput
+
 local function replace(input, query, args)
     inline:setText(input, query:replaceExpression(""):gsub(utils.escape(args[1]), args[2]))
 end
@@ -75,13 +77,11 @@ local function fspace(input, query)
     }, function(ui)
         local inputText = ui.textInput("space_" .. query:getArgs(), "Text")
         local pasteButton = ui.smallButton("Paste", function()
-            local node = inline:getLatestAccessibilityEvent():getSource()
-
-            if node == nil or ui:isFocused() or node:getPackageName() == inline:getPackageName() then
+            if latestInput == nil or ui:isFocused() or latestInput:getPackageName() == inline:getPackageName() then
                 return inline:toast("Please focus on the desired input")
             end
 
-            inline:insertText(node, inputText:getText())
+            inline:insertText(latestInput, inputText:getText())
         end)
 
         ui.onFocusChanged = function(isFocused)
@@ -120,5 +120,8 @@ return function(module)
 
     if (inline:isFloatingWindowSupported()) then
         module:registerCommand("fspace", fspace, "Floating text editor")
+        module:registerWatcher(function(input)
+            latestInput = input
+        end)
     end
 end

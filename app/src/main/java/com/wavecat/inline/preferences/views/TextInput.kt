@@ -109,7 +109,7 @@ class TextInput(context: Context) : TextInputLayout(context), Preference {
 
         editText?.addTextChangedListener(textWatcher)
         editText?.setOnClickListener { requestFocus() }
-        
+
         return this
     }
 }

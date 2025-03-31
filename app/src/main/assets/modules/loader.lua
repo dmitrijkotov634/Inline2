@@ -58,4 +58,5 @@ return function(module)
     module:registerCommand("delete", colorama.wrap(delete), "Delete a file")
 
     dirPath = inline:getExternalFilesDirs()[1]:getAbsolutePath() .. "/modules/"
+    luajava.newInstance("java.io.File", dirPath):mkdirs()
 end
