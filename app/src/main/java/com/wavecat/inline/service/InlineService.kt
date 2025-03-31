@@ -8,6 +8,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.Resources
+import android.graphics.Rect
 import android.os.Build
 import android.os.Environment
 import android.view.ContextThemeWrapper
@@ -32,6 +34,7 @@ import org.luaj.vm2.lib.jse.JsePlatform
 import java.util.Timer
 import java.util.regex.Pattern
 import kotlin.concurrent.timerTask
+
 
 class InlineService : AccessibilityService() {
     val defaultSharedPreferences: SharedPreferences by lazy {
@@ -269,5 +272,16 @@ class InlineService : AccessibilityService() {
             setText(accessibilityNodeInfo, newText)
             setSelection(accessibilityNodeInfo, start + textToInsert.length, start + textToInsert.length)
         }
+
+        @JvmStatic
+        fun getBoundsInScreen(node: AccessibilityNodeInfo) = Rect().apply {
+            node.getBoundsInScreen(this)
+        }
+
+        @JvmStatic
+        fun getScreenWidth(): Int = Resources.getSystem().displayMetrics.widthPixels
+
+        @JvmStatic
+        fun getScreenHeight(): Int = Resources.getSystem().displayMetrics.heightPixels
     }
 }

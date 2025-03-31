@@ -79,7 +79,7 @@ class TextInput(context: Context) : TextInputLayout(context), Preference {
             editText?.setText(text)
         }
 
-    override fun getView(preferences: SharedPreferences?): View {
+    override fun getView(preferences: SharedPreferences?, requestFocus: () -> Unit): View {
         if (textWatcher != null)
             editText?.removeTextChangedListener(textWatcher)
 
@@ -108,10 +108,8 @@ class TextInput(context: Context) : TextInputLayout(context), Preference {
         }
 
         editText?.addTextChangedListener(textWatcher)
-        return this
-    }
-
-    override fun setWindowFocusListener(requestFocus: () -> Unit) {
         editText?.setOnClickListener { requestFocus() }
+        
+        return this
     }
 }

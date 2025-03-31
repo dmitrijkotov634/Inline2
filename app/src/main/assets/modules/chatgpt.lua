@@ -175,7 +175,7 @@ end
 local function insertText(ui, text)
     local node = inline:getLatestAccessibilityEvent():getSource()
 
-    if ui:isFocused() or node:getPackageName() == inline:getPackageName() then
+    if node == nil or ui:isFocused() or node:getPackageName() == inline:getPackageName() then
         return inline:toast("Please focus on the desired input")
     end
 
@@ -193,6 +193,14 @@ local function fask(_, query)
             text:setText(result)
         end)
 
+        local paste = ui.smallButton("Paste", function()
+            insertText(ui, text:getText())
+        end)
+
+        ui.onFocusChanged = function(isFocused)
+            paste:setEnabled(not isFocused)
+        end
+
         return {
             text,
             ui.spacer(8),
@@ -200,12 +208,8 @@ local function fask(_, query)
                 ui.smallButton("Close", function()
                     ui:close()
                 end),
-
                 ui.spacer(8),
-
-                ui.smallButton("Paste", function()
-                    insertText(ui, text:getText())
-                end)
+                paste
             }
         }
     end)
@@ -234,6 +238,14 @@ local function fgpt(_, query)
             end)
         end)
 
+        local paste = ui.smallButton("Paste", function()
+            insertText(ui, text:getText())
+        end)
+
+        ui.onFocusChanged = function(isFocused)
+            paste:setEnabled(not isFocused)
+        end
+
         if #history > 0 then
             text:setText(history[#history].content)
         end
@@ -246,20 +258,13 @@ local function fgpt(_, query)
             {
                 askButton,
                 ui.spacer(8),
-
-                ui.smallButton("Paste", function()
-                    insertText(ui, text:getText())
-                end),
-
+                paste,
                 ui.spacer(8),
-
                 ui.smallButton("Clear CTX", function()
                     text:setText("Empty history")
                     history = {}
                 end),
-
                 ui.spacer(8),
-
                 ui.smallButton("Close", function()
                     ui:close()
                 end),

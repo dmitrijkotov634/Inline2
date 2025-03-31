@@ -51,7 +51,7 @@ class PreferencesDialog(private val context: Context) {
                 preference.builder.call(builder, CoerceJavaToLua.coerce(this)).checktable()
 
             preferencesList.forEach { _, value ->
-                val view = castPreference(context, value).getView(preference.sharedPreferences)
+                val view = castPreference(context, value).getView(preference.sharedPreferences) {}
 
                 if (view.parent != null)
                     (view.parent as ViewGroup).removeView(view)

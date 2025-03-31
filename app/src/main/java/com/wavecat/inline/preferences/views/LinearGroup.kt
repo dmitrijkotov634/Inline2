@@ -12,7 +12,7 @@ import org.luaj.vm2.LuaTable
 
 @SuppressLint("ViewConstructor")
 open class LinearGroup(context: Context, private val views: LuaTable) : LinearLayout(context), Preference {
-    override fun getView(preferences: SharedPreferences?): View {
+    override fun getView(preferences: SharedPreferences?, requestFocus: () -> Unit): View {
         removeAllViews()
 
         views.forEach { _, value ->
@@ -22,7 +22,7 @@ open class LinearGroup(context: Context, private val views: LuaTable) : LinearLa
                     value = value,
                     topOrientation = orientation
                 )
-                    .getView(preferences)
+                    .getView(preferences, requestFocus)
             )
         }
 
