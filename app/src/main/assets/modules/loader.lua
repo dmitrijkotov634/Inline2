@@ -59,4 +59,6 @@ return function(module)
 
     dirPath = inline:getExternalFilesDirs()[1]:getAbsolutePath() .. "/modules/"
     luajava.newInstance("java.io.File", dirPath):mkdirs()
+
+    module:saveLazyLoad()
 end

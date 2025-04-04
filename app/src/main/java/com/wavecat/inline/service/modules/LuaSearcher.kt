@@ -24,13 +24,16 @@ class LuaSearcher(private val globals: Globals) : VarArgFunction() {
     }
 
     companion object {
+        private const val PACKAGE = "com.wavecat.inline.libs"
+
         private val LIBRARIES = mapOf(
-            "http" to "com.wavecat.inline.libs.http",
-            "json" to "com.wavecat.inline.libs.json",
-            "iutf8" to "com.wavecat.inline.libs.utf8",
-            "utils" to "com.wavecat.inline.libs.utils",
-            "menu" to "com.wavecat.inline.libs.menu",
-            "colorama" to "com.wavecat.inline.libs.colorama"
+            "http" to "$PACKAGE.http",
+            "json" to "$PACKAGE.json",
+            "iutf8" to "$PACKAGE.utf8",
+            "utils" to "$PACKAGE.utils",
+            "menu" to "$PACKAGE.menu",
+            "colorama" to "$PACKAGE.colorama",
+            "windows" to "$PACKAGE.windows"
         )
     }
 }

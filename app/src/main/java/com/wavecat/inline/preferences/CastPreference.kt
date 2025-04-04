@@ -1,6 +1,8 @@
 package com.wavecat.inline.preferences
 
 import android.content.Context
+import android.content.SharedPreferences
+import android.view.View
 import android.widget.LinearLayout
 import com.wavecat.inline.preferences.views.LinearGroup
 import com.wavecat.inline.preferences.views.Spacer
@@ -17,7 +19,16 @@ fun castPreference(
     topOrientation: Int = LinearLayout.VERTICAL,
 ): Preference =
     when (value) {
-        is LuaUserdata -> value.checkuserdata(Preference::class.java) as Preference
+        is LuaUserdata -> when {
+            value.isuserdata(Preference::class.java) -> value.touserdata() as Preference
+
+            value.isuserdata(View::class.java) -> object : Preference {
+                override fun getView(preferences: SharedPreferences?, requestFocus: () -> Unit): View =
+                    value.touserdata() as View
+            }
+
+            else -> value.checkuserdata(Preference::class.java) as Preference
+        }
 
         is LuaString -> Text(context, value.tojstring())
 

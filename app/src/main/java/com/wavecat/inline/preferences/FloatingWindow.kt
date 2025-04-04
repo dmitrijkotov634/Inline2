@@ -5,8 +5,10 @@ package com.wavecat.inline.preferences
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.util.TypedValue
@@ -15,6 +17,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.LinearLayout
 import androidx.annotation.RequiresApi
 import com.wavecat.inline.extensions.forEach
@@ -55,6 +58,8 @@ class FloatingWindow(private val context: Context) {
     val mWindowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     var mLayout: LinearLayout? = null
 
+    var onClose: (() -> Unit)? = null
+
     private val builder = Builder(context = context).apply {
         set("windowManager", CoerceJavaToLua.coerce(mWindowManager))
         set("isFocused", zeroArgFunction { valueOf(!isNotFocused()) })
@@ -68,15 +73,41 @@ class FloatingWindow(private val context: Context) {
         set("onClose", zeroArgFunction { LuaValue.NIL })
     }
 
+    @SuppressLint("RtlHardcoded")
+    fun alignToNode(accessibilityNodeInfo: AccessibilityNodeInfo, config: LuaValue) {
+        val nodeRect = Rect().apply { accessibilityNodeInfo.getBoundsInScreen(this) }
+
+        val screenWidth = Resources.getSystem().displayMetrics.widthPixels
+        val screenHeight = Resources.getSystem().displayMetrics.heightPixels
+
+        val offsetX = config.get("offsetX").optint(0).dp
+        val offsetY = config.get("offsetY").optint(0).dp
+        val alignment = config.get("alignment").optjstring("left")
+
+        positionX = if (alignment == "right") {
+            screenWidth - nodeRect.left - offsetX
+        } else {
+            nodeRect.left - offsetX
+        }
+
+        positionY = screenHeight - nodeRect.top - offsetY
+
+        windowGravity = if (alignment == "right") {
+            Gravity.BOTTOM or Gravity.RIGHT
+        } else {
+            Gravity.BOTTOM or Gravity.LEFT
+        }
+    }
+
     fun configure(config: LuaValue) {
         with(config) {
             cornerRadius = get("cornerRadius").optint(cornerRadius)
 
             padding = intArrayOf(
-                config.get("paddingLeft").optint(padding[0]),
-                config.get("paddingTop").optint(padding[1]),
-                config.get("paddingRight").optint(padding[2]),
-                config.get("paddingBottom").optint(padding[3])
+                get("paddingLeft").optint(padding[0]),
+                get("paddingTop").optint(padding[1]),
+                get("paddingRight").optint(padding[2]),
+                get("paddingBottom").optint(padding[3])
             )
 
             backgroundColor = get("backgroundColor").optint(backgroundColor)
@@ -197,7 +228,7 @@ class FloatingWindow(private val context: Context) {
         mLayout?.addView(view)
     }
 
-    private fun createLayoutParams(): WindowManager.LayoutParams {
+    fun createLayoutParams(): WindowManager.LayoutParams {
         return WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -232,6 +263,7 @@ class FloatingWindow(private val context: Context) {
 
     fun close() {
         mLayout?.let { layout ->
+            onClose?.invoke()
             builder.get("onClose").takeIf { !it.isnil() }?.call()
             builder.set("layout", LuaValue.NIL)
             mWindowManager.removeView(layout)

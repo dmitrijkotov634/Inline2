@@ -1,6 +1,8 @@
 package com.wavecat.inline.preferences
 
 import android.content.Context
+import android.view.View
+import com.wavecat.inline.extensions.twoArgFunction
 import com.wavecat.inline.extensions.varArgFunction
 import com.wavecat.inline.preferences.views.Button
 import com.wavecat.inline.preferences.views.CheckBox
@@ -41,5 +43,21 @@ class Builder(context: Context) : LuaTable() {
         set("button", withContext(context, Button::class.java))
         set("spacer", withContext(context, Spacer::class.java))
         set("smallButton", withContext(context, SmallButton::class.java))
+
+        // Listeners
+
+        set("setOnClickListener", twoArgFunction { view, listener ->
+            (view.checkuserdata(View::class.java) as View).setOnClickListener {
+                listener(CoerceJavaToLua.coerce(view))
+            }
+            NIL
+        })
+
+        set("setOnLongClickListener", twoArgFunction { view, listener ->
+            (view.checkuserdata(View::class.java) as View).setOnLongClickListener {
+                listener(CoerceJavaToLua.coerce(view)).arg1().optboolean(true)
+            }
+            NIL
+        })
     }
 }
