@@ -1,4 +1,5 @@
 require "colorama"
+require "windows"
 
 local ActivityManager = luajava.bindClass("android.app.ActivityManager")
 
@@ -73,7 +74,7 @@ local function flogo(_, query)
     ░░░    ░░░        ░░░
 ]]
 
-    inline:showFloatingWindow(windowConfig, function(ui)
+    windows.create(windowConfig, function(ui)
         local title = ui.text("Inline " .. BuildConfig.VERSION_NAME .. " on Android " .. Build.VERSION.RELEASE)
         local text = ui.text(logo)
 
@@ -132,7 +133,7 @@ local function flogo(_, query)
 end
 
 local function fclock(_, query)
-    inline:showFloatingWindow(windowConfig, function(ui)
+    windows.create(windowConfig, function(ui)
         local time
 
         local decorativeSymbols = { "░", "▒", "▓" }
@@ -171,8 +172,10 @@ return function(module)
     module:setCategory "Fetch"
     module:registerCommand("fetch", colorama.wrap(fetch), "Displays detailed system and memory usage information")
 
-    if (inline:isFloatingWindowSupported()) then
+    if (windows.isSupported()) then
         module:registerCommand("flogo", flogo, "Displays a large Inline logo with system information in a floating window")
         module:registerCommand("fclock", fclock, "Displays a large Inline clock with time in a floating window")
     end
+
+    module:saveLazyLoad()
 end

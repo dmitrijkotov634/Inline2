@@ -8,25 +8,18 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.SharedPreferences
-import android.content.res.Resources
-import android.graphics.Rect
 import android.os.Build
 import android.os.Environment
-import android.view.ContextThemeWrapper
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 import androidx.core.os.bundleOf
 import androidx.preference.PreferenceManager
-import com.google.android.material.color.DynamicColors
-import com.wavecat.inline.R
-import com.wavecat.inline.preferences.FloatingWindow
 import com.wavecat.inline.preferences.PreferencesItem
 import com.wavecat.inline.service.commands.Command
 import com.wavecat.inline.service.commands.Query
 import com.wavecat.inline.service.modules.LuaSearcher
 import com.wavecat.inline.service.modules.loadModules
-import com.wavecat.inline.utils.dp
 import com.wavecat.inline.utils.runOnUiThread
 import org.luaj.vm2.LuaString
 import org.luaj.vm2.LuaValue
@@ -110,21 +103,6 @@ class InlineService : AccessibilityService() {
     fun toast(text: String?) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
 
     fun getSharedPreferences(name: String?): SharedPreferences = getSharedPreferences(name, MODE_PRIVATE)
-
-    fun isFloatingWindowSupported() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1
-
-    fun showFloatingWindow(config: LuaValue, init: LuaValue): FloatingWindow? {
-        if (isFloatingWindowSupported()) {
-            return FloatingWindow(
-                DynamicColors.wrapContextIfAvailable(ContextThemeWrapper(this, R.style.Theme_Inline))
-            ).apply {
-                configure(config)
-                create(init)
-            }
-        }
-
-        return null
-    }
 
     private fun notifyWatchers(accessibilityNodeInfo: AccessibilityNodeInfo, eventType: Int) =
         allWatchers.filter { (_, value) -> (value and eventType) == eventType }
@@ -264,19 +242,5 @@ class InlineService : AccessibilityService() {
             setText(accessibilityNodeInfo, newText)
             setSelection(accessibilityNodeInfo, start + textToInsert.length, start + textToInsert.length)
         }
-
-        @JvmStatic
-        fun getBoundsInScreen(node: AccessibilityNodeInfo) = Rect().apply {
-            node.getBoundsInScreen(this)
-        }
-
-        @JvmStatic
-        fun getScreenWidth(): Int = Resources.getSystem().displayMetrics.widthPixels
-
-        @JvmStatic
-        fun getScreenHeight(): Int = Resources.getSystem().displayMetrics.heightPixels
-
-        @JvmStatic
-        fun dpToPx(value: Int): Int = value.dp
     }
 }

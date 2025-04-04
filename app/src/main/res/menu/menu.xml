@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/storage_permission"
+        android:title="@string/storage_permission" />
+
+    <item
+        android:id="@+id/preferences"
+        android:title="@string/preferences" />
+
+    <item
+        android:id="@+id/turn_on"
+        android:title="@string/turn_on" />
+
+    <item
+        android:id="@+id/reload"
+        android:title="@string/reload" />
+</menu>

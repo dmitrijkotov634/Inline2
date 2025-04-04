@@ -1,6 +1,7 @@
-package com.wavecat.inline
+package com.wavecat.inline.ui
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
@@ -9,82 +10,88 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
+import android.view.inputmethod.EditorInfo
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.view.WindowCompat
-import androidx.preference.PreferenceManager
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.wavecat.inline.R
 import com.wavecat.inline.databinding.ActivityMainBinding
 import com.wavecat.inline.preferences.PreferencesDialog
 import com.wavecat.inline.service.InlineService.Companion.instance
 import com.wavecat.inline.service.InlineService.Companion.requireService
-import com.wavecat.inline.service.modules.DEFAULT_ASSETS_PATH
-import com.wavecat.inline.service.modules.UNLOADED
-import com.wavecat.inline.service.modules.defaultUnloaded
 
 @Suppress("unused")
 class MainActivity : AppCompatActivity() {
+
+    private val model by viewModels<MainViewModel>()
+
+    @SuppressLint("NotifyDataSetChanged")
     override fun onCreate(savedInstanceState: Bundle?) {
         DynamicColors.applyToActivityIfAvailable(this)
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         super.onCreate(savedInstanceState)
 
-        val preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         val binding = ActivityMainBinding.inflate(layoutInflater)
 
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
 
-        binding.openAccessibilitySettings.setOnClickListener {
-            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
+        model.errorMessage.observe(this) { binding.errorMessage.text = it }
+
+        val adapter = ModulesAdapter() { module ->
+            when (module) {
+                is ModuleItem.Internal -> {
+                    if (module.isLoaded) {
+                        model.disableModule(module)
+                    } else {
+                        model.enableModule(module)
+                    }
+
+                    instance?.createEnvironment()
+                }
+
+                is ModuleItem.External -> {
+                    if (module.isInstalled) {
+                        model.removeModule(module)
+                    } else {
+                        model.downloadModule(module)
+                    }
+                }
+            }
         }
 
-        binding.reloadService.setOnClickListener {
-            val service = instance
-            service?.createEnvironment() ?: binding.openAccessibilitySettings.callOnClick()
+        binding.modules.adapter = adapter
+
+        model.modules.observe(this) { list ->
+            adapter.modules = list
+            adapter.notifyDataSetChanged()
         }
 
-        val unloaded: MutableSet<String> = HashSet(
-            preferences.getStringSet(UNLOADED, defaultUnloaded)!!
-        )
+        model.repositoryUrl.observe(this) {
+            binding.repositoryUrl.editText?.setText(it)
+        }
 
-        binding.internalModules.setOnClickListener {
-            val internalModules = resources.assets.list(DEFAULT_ASSETS_PATH)
-            val enabled = BooleanArray(internalModules!!.size)
-
-            for (index in internalModules.indices)
-                enabled[index] = !unloaded.contains(internalModules[index])
-
-            MaterialAlertDialogBuilder(this@MainActivity)
-                .setTitle(R.string.internal_modules)
-                .setMultiChoiceItems(
-                    internalModules,
-                    enabled
-                ) { _: DialogInterface?, index: Int, value: Boolean ->
-                    if (!value)
-                        unloaded.add(internalModules[index])
-                    else
-                        unloaded.remove(internalModules[index])
-                }
-                .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int ->
-                    preferences.edit()
-                        .putStringSet(UNLOADED, unloaded)
-                        .apply()
-
-                    binding.reloadService.callOnClick()
-                }
-                .show()
+        binding.repositoryUrl.editText?.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_GO) {
+                val url = binding.repositoryUrl.editText?.text.toString()
+                model.updateUrl(url)
+                true
+            } else {
+                false
+            }
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { }.launch(
                 Manifest.permission.POST_NOTIFICATIONS
             )
+
+        model.loadModules()
     }
 
     override fun onResume() {
@@ -105,10 +112,20 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.storage_permission -> showExternalStorageSettings()
             R.id.preferences -> showPreferencesDialog()
+            R.id.turn_on -> openAccessibilitySettings()
+            R.id.reload -> reload()
         }
 
         return super.onOptionsItemSelected(item)
     }
+
+    private fun openAccessibilitySettings() =
+        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivity(this)
+        }
+
+    private fun reload() = instance?.createEnvironment() ?: openAccessibilitySettings()
 
     private fun showPreferencesDialog() {
         val items: Array<String?> = requireService().allPreferences.keys.toTypedArray()
@@ -142,9 +159,5 @@ class MainActivity : AppCompatActivity() {
                 ), 1
             )
         }
-    }
-
-    companion object {
-        private const val LOADER_PREF = "loader_module"
     }
 }

@@ -29,11 +29,11 @@ local function help(_, query)
         end
         query:answer(table.concat(result, "\n"))
     else
-        local lower_args = utf8.lower(args)
+        local lower_args = args:lower()
         local found_category
 
         for category in pairs(categories) do
-            local lower_category = utf8.lower(category)
+            local lower_category = category:lower()
             if lower_category == lower_args or lower_category:find(lower_args, 1, true) == 1 then
                 found_category = category
                 break
@@ -61,4 +61,5 @@ return function(module)
     module:setCategory "Settings"
     module:registerCommand("help", help, "Displays help")
     module:registerCommand("reload", reload, "Recreate environment, initializes modules")
+    module:saveLazyLoad()
 end

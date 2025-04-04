@@ -1,13 +1,12 @@
 require "json"
 require "http"
 require "menu"
+require "windows"
 
 local DEFAULT_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
 local TimeUnit = luajava.bindClass "java.util.concurrent.TimeUnit"
 local preferences = inline:getDefaultSharedPreferences()
-
-local latestInput
 
 local client = http(
     http.newBuilder()
@@ -174,18 +173,10 @@ local function cask(_, query)
     end)
 end
 
-local function insertText(ui, text)
-    if latestInput == nil or ui:isFocused() or latestInput:getPackageName() == inline:getPackageName() then
-        return inline:toast("Please focus on the desired input")
-    end
-
-    inline:insertText(latestInput, text)
-end
-
-local function fask(_, query)
+local function fask(input, query)
     local args = getArgs(query)
 
-    inline:showFloatingWindow({ noLimits = true }, function(ui)
+    windows.createAligned(input, { noLimits = true }, function(ui)
         local text = ui.text("Loading...")
         text:setMaxLines(15)
 
@@ -194,7 +185,9 @@ local function fask(_, query)
         end)
 
         local paste = ui.smallButton("Paste", function()
-            insertText(ui, text:getText())
+            if not windows.insertText(text:getText()) then
+                return inline:toast("Please focus on the desired input")
+            end
         end)
 
         ui.onFocusChanged = function(isFocused)
@@ -218,7 +211,7 @@ local function fask(_, query)
 end
 
 local function fgpt(_, query)
-    inline:showFloatingWindow({ noLimits = true }, function(ui)
+    windows.create({ noLimits = true }, function(ui)
         local input = ui.textInput("Input")
         local text = ui.text("Empty history")
 
@@ -239,7 +232,9 @@ local function fgpt(_, query)
         end)
 
         local paste = ui.smallButton("Paste", function()
-            insertText(ui, text:getText())
+            if not windows.insertText(text:getText()) then
+                return inline:toast("Please focus on the desired input")
+            end
         end)
 
         ui.onFocusChanged = function(isFocused)
@@ -282,13 +277,11 @@ return function(module)
     module:registerCommand("clear", clear, "Clear dialog")
     module:registerCommand("history", show, "Show history")
 
-    if (inline:isFloatingWindowSupported()) then
+    if (windows.isSupported()) then
         module:registerCommand("fask", fask, "Asks ChatGPT with Floating result")
         module:registerCommand("fgpt", fgpt, "Floating ChatGPT Window")
+        windows.supportInsert()
     end
 
     module:registerPreferences(getPreferences)
-    module:registerWatcher(function(input)
-        latestInput = input
-    end)
 end

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".ui.MainActivity">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
@@ -22,70 +22,51 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-
-    <Button
-        android:id="@+id/open_accessibility_settings"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/turn_on"
-        app:layout_constraintBottom_toTopOf="@+id/internal_modules"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/appBarLayout"
-        app:layout_constraintVertical_chainStyle="spread" />
-
-    <Button
-        android:id="@+id/reload_service"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/reload"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/modules"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:orientation="vertical"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/internal_modules" />
+        app:layout_constraintTop_toBottomOf="@+id/repository_url"
+        tools:listitem="@layout/module_item" />
 
-    <Button
-        android:id="@+id/internal_modules"
-        android:layout_width="wrap_content"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/repository_url"
+        style="@style/Widget.Material3.TextInputLayout.FilledBox"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="@string/modules"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/reload_service"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/open_accessibility_settings" />
+        app:layout_constraintTop_toBottomOf="@+id/appBarLayout">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/repository_url"
+            android:imeOptions="actionGo"
+            android:inputType="text"
+            android:maxLines="1" />
+
+    </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
-        android:id="@+id/turn_on"
+        android:id="@+id/error_message"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
         android:gravity="center_horizontal"
-        android:text="@string/open_accessibility_settings"
-        app:layout_constraintEnd_toEndOf="@+id/open_accessibility_settings"
-        app:layout_constraintStart_toStartOf="@+id/open_accessibility_settings"
-        app:layout_constraintTop_toBottomOf="@+id/open_accessibility_settings" />
-
-    <TextView
-        android:id="@+id/hint"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:text="@string/reload_hint"
-        app:layout_constraintEnd_toEndOf="@+id/reload_service"
-        app:layout_constraintStart_toStartOf="@+id/reload_service"
-        app:layout_constraintTop_toBottomOf="@+id/reload_service" />
-
-    <TextView
-        android:id="@+id/hint1"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:text="@string/modules_hint"
-        app:layout_constraintEnd_toEndOf="@+id/internal_modules"
-        app:layout_constraintStart_toStartOf="@+id/internal_modules"
-        app:layout_constraintTop_toBottomOf="@+id/internal_modules" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/appBarLayout" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

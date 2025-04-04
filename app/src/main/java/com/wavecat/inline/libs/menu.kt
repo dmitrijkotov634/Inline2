@@ -16,15 +16,16 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
 class menu : TwoArgFunction() {
     private val menuMap = mutableMapOf<AccessibilityNodeInfo, Context>()
+
     private val menuWatcher = oneArgFunction { arg ->
-        val accessibilityNodeInfo =
-            arg.checkuserdata(AccessibilityNodeInfo::class.java) as AccessibilityNodeInfo
+        val accessibilityNodeInfo = arg.touserdata() as AccessibilityNodeInfo
 
         val context = menuMap[accessibilityNodeInfo] ?: return@oneArgFunction NIL
 
         val text = accessibilityNodeInfo.text
         if (text == null || text.length != context.length) {
             menuMap.remove(accessibilityNodeInfo)
+            removeWatcher()
 
             if (context.cancelAction.isnil()) {
                 context.query.answer(null)
@@ -40,10 +41,19 @@ class menu : TwoArgFunction() {
                     accessibilityNodeInfo.textSelectionEnd in (part.start + 1) until part.end
         }?.let { part ->
             menuMap.remove(accessibilityNodeInfo)
+            removeWatcher()
+
             part.action.call(arg, CoerceJavaToLua.coerce(context.query))
         }
 
         NIL
+    }
+
+    private fun removeWatcher() {
+        requireService().apply {
+            if (menuMap.isEmpty())
+                allWatchers.remove(menuWatcher)
+        }
     }
 
     override fun call(name: LuaValue, env: LuaValue): LuaValue {
@@ -80,6 +90,7 @@ class menu : TwoArgFunction() {
             )
 
             menuMap[query.accessibilityNodeInfo] = context
+            requireService().allWatchers[menuWatcher] = InlineService.TYPE_SELECTION_CHANGED
             CoerceJavaToLua.coerce(context)
         }
 
@@ -87,8 +98,6 @@ class menu : TwoArgFunction() {
 
         env["menu"] = library
         env["package"]["loaded"]["menu"] = library
-
-        requireService().allWatchers[menuWatcher] = InlineService.TYPE_SELECTION_CHANGED
 
         return library
     }

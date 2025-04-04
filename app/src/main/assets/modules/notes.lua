@@ -87,4 +87,5 @@ return function(module)
     module:registerCommand("note", note, "Gets the note specified")
     module:registerCommand("delnote", delnote, "Deletes a note, specified by note name")
     module:registerCommand("notes", notes, "Notes manager")
+    module:saveLazyLoad()
 end

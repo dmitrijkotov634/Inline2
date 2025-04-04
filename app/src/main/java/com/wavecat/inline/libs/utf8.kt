@@ -22,9 +22,6 @@ class utf8 : TwoArgFunction() {
             valueOf(str.substring(startIndex, endIndex))
         }
 
-        library["lower"] = oneArgFunction { valueOf(it.checkjstring().lowercase()) }
-        library["upper"] = oneArgFunction { valueOf(it.checkjstring().uppercase()) }
-
         library["char"] = varArgFunction {
             valueOf(buildString {
                 it.forEachVararg {
