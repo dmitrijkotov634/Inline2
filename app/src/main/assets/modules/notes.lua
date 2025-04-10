@@ -78,14 +78,17 @@ local function notes(_, query)
         result[#result + 1] = " " .. entry:getKey() .. "\n"
     end
 
-    menu.create(query, result, notes)
+    menu.create(query, result)
 end
 
 return function(module)
     module:setCategory "Notes"
+    module:setDescription "Create, manage, and delete notes"
+
     module:registerCommand("save", save, "Save a new note")
     module:registerCommand("note", note, "Gets the note specified")
     module:registerCommand("delnote", delnote, "Deletes a note, specified by note name")
     module:registerCommand("notes", notes, "Notes manager")
+
     module:saveLazyLoad()
 end

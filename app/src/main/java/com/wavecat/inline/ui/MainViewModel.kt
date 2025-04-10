@@ -1,46 +1,61 @@
 package com.wavecat.inline.ui
 
-import android.app.Application
+import android.content.SharedPreferences
 import androidx.core.content.edit
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.preference.PreferenceManager
 import com.wavecat.inline.service.InlineService
-import com.wavecat.inline.service.modules.DEFAULT_ASSETS_PATH
+import com.wavecat.inline.service.InlineService.Companion.ENVIRONMENT_PERF
 import com.wavecat.inline.service.modules.UNLOADED
 import com.wavecat.inline.service.modules.defaultUnloaded
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
+class MainViewModel(
+    private val sharedPreferences: SharedPreferences,
+    private val modulesPath: File,
+    private val internalModules: List<String>,
+) : ViewModel() {
 
-    private val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(application)
+    private val _modules = MutableStateFlow<List<ModuleItem>>(emptyList())
+    val modules: StateFlow<List<ModuleItem>> = _modules.asStateFlow()
 
-    private val _modules = MutableLiveData<List<ModuleItem>>()
-    val modules: LiveData<List<ModuleItem>> = _modules
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    private val _errorMessage = MutableLiveData<String?>()
-    val errorMessage: LiveData<String?> = _errorMessage
+    private val _repositoryUrl = MutableStateFlow(
+        sharedPreferences.getString(REPOSITORY_URL, REPOSITORY)
+    )
 
-    private val _repositoryUrl =
-        MutableLiveData<String?>(sharedPreferences.getString(REPOSITORY_URL, REPOSITORY))
-
-    val repositoryUrl: LiveData<String?> = _repositoryUrl
+    val repositoryUrl: StateFlow<String?> = _repositoryUrl.asStateFlow()
 
     private val client = OkHttpClient()
 
-    private val modulesPath = File(application.getExternalFilesDirs(null)[0].absolutePath + "/modules")
-        .apply { mkdirs() }
-
-    private val internalModules = application.assets.list(DEFAULT_ASSETS_PATH) ?: arrayOf()
-
     private val unloaded: MutableSet<String> =
         HashSet(sharedPreferences.getStringSet(UNLOADED, defaultUnloaded)!!)
+
+    private var applyChanges = false
+
+    private fun updateModuleList(update: (ModuleItem) -> ModuleItem) {
+        _modules.update { current ->
+            current
+                .map(update)
+                .sortedWith(
+                    compareByDescending<ModuleItem> {
+                        (it as? ModuleItem.External)?.isInstalled ?: true
+                    }.thenByDescending {
+                        (it as? ModuleItem.Internal)?.isLoaded ?: false
+                    }
+                )
+        }
+    }
 
     fun loadModules() = viewModelScope.launch(Dispatchers.IO) {
         runCatching {
@@ -63,15 +78,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val internalModuleItems = internalModules.map { moduleName ->
                     ModuleItem.Internal(
                         name = moduleName,
-                        description = "Internal module",
+                        description = sharedPreferences.getString(
+                            "DESC$moduleName",
+                            "Internal module"
+                        )!!,
                         isLoaded = !unloaded.contains(moduleName)
                     )
                 }
 
-                val mergedModules = moduleList + internalModuleItems
+                val mergedModules = (moduleList + internalModuleItems).sortedWith(
+                    compareByDescending<ModuleItem> {
+                        (it as? ModuleItem.External)?.isInstalled ?: true
+                    }.thenByDescending {
+                        (it as? ModuleItem.Internal)?.isLoaded ?: false
+                    }
+                )
 
-                _modules.postValue(mergedModules)
-                _errorMessage.postValue(null)
+                _modules.value = mergedModules
+                _errorMessage.value = null
             }
         }
             .onFailure {
@@ -97,14 +121,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
 
-                val updatedModule = module.copy(isInstalled = true)
-
-                _modules.postValue(_modules.value?.map {
-                    if (it is ModuleItem.External && it.name == module.name) updatedModule else it
-                })
+                updateModuleList { item ->
+                    if (item is ModuleItem.External && item.name == module.name)
+                        item.copy(isInstalled = true)
+                    else item
+                }
 
                 postError(null)
-                InlineService.instance?.createEnvironment()
+                createEnvironmentIfEfficient()
             }
         }
             .onFailure {
@@ -116,12 +140,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         sharedPreferences.edit {
             unloaded.remove(module.name)
             putStringSet(UNLOADED, unloaded)
-            apply()
         }
 
-        val enabledModule = module.copy(isLoaded = true)
-        _modules.value = _modules.value?.map {
-            if (it is ModuleItem.Internal && it.name == module.name) enabledModule else it
+        updateModuleList { item ->
+            if (item is ModuleItem.Internal && item.name == module.name)
+                item.copy(isLoaded = true)
+            else item
         }
     }
 
@@ -129,12 +153,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         sharedPreferences.edit {
             unloaded.add(module.name)
             putStringSet(UNLOADED, unloaded)
-            apply()
         }
 
-        val disabledModule = module.copy(isLoaded = false)
-        _modules.value = _modules.value?.map {
-            if (it is ModuleItem.Internal && it.name == module.name) disabledModule else it
+        updateModuleList { item ->
+            if (item is ModuleItem.Internal && item.name == module.name)
+                item.copy(isLoaded = false)
+            else item
         }
     }
 
@@ -147,20 +171,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     return@runCatching
             }
 
-            val removedModule = module.copy(isInstalled = false)
-            _modules.value = _modules.value?.map {
-                if (it is ModuleItem.External && it.name == module.name) removedModule else it
+            updateModuleList { item ->
+                if (item is ModuleItem.External && item.name == module.name)
+                    item.copy(isInstalled = false)
+                else item
             }
 
             postError(null)
-            InlineService.instance?.createEnvironment()
+            createEnvironmentIfEfficient()
         }.onFailure {
             postError("An error occurred while removing module: ${it.localizedMessage}")
         }
     }
 
+    fun createEnvironmentIfEfficient() {
+        if (sharedPreferences.getLong(ENVIRONMENT_PERF, 0) < 500)
+            InlineService.instance?.createEnvironment()
+        else
+            applyChanges = true
+    }
+
+    fun onPause() {
+        if (applyChanges) {
+            InlineService.instance?.createEnvironment()
+            applyChanges = false
+        }
+    }
+
     private fun postError(message: String?) {
-        _errorMessage.postValue(message)
+        _errorMessage.value = message
     }
 
     private fun String.parseModuleLine(): ModuleItem? {
@@ -180,7 +219,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         sharedPreferences.edit {
             putString(REPOSITORY_URL, newUrl)
-            apply()
         }
 
         loadModules()
@@ -188,7 +226,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         private const val REPOSITORY_URL = "repository_url"
-        private const val REPOSITORY =
-            "https://raw.githubusercontent.com/ImSkaiden/inline_modules/refs/heads/main"
+        private const val REPOSITORY = "https://inlineapp.github.io/modules"
     }
 }

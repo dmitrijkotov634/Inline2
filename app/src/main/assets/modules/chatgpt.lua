@@ -272,6 +272,7 @@ end
 
 return function(module)
     module:setCategory "ChatGPT"
+    module:setDescription "ChatGPT integration"
 
     module:registerCommand("ask", cask, "Asks ChatGPT")
     module:registerCommand("clear", clear, "Clear dialog")

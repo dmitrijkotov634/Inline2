@@ -53,13 +53,53 @@ local function help(_, query)
 end
 
 local function reload(_, query)
-    inline:createEnvironment()
     query:answer()
+    inline:createEnvironment()
+end
+
+local function hotload(_, query)
+    inline:getLazyLoadSharedPreferences()
+          :edit()
+          :clear()
+          :apply()
+
+    reload(_, query)
+end
+
+local function getPreferences(prefs)
+    local notificationTimeout = inline:getDefaultSharedPreferences():getInt("notification_timeout", 0)
+    local currentValue = prefs.text("Current value: " .. notificationTimeout .. " ms")
+
+    return {
+        "This slider controls how frequently Inline receives system events. Higher frequency improves command responsiveness but may increase CPU and battery usage.",
+        prefs.spacer(8),
+        currentValue,
+        prefs.spacer(12),
+        prefs.seekBar("notification_timeout", 5000):setOnProgressChanged(function(progress)
+            currentValue:setText("Current value: " .. progress .. " ms")
+        end),
+        prefs.spacer(8),
+        "Disabling this feature breaks the functionality of interactive menus, stops receiving cursor position change events, and may interfere with text insertion from floating windows.",
+        prefs.checkBox("receive_selection_changes", "Receive selection changes"):setDefault(true),
+        "Changes will apply after restarting the service from the device settings!",
+        prefs.spacer(8),
+        {
+            prefs.smallButton("Disable service", function()
+                inline:disableSelf()
+                prefs:cancel()
+            end)
+        },
+        prefs.spacer(8)
+    }
 end
 
 return function(module)
     module:setCategory "Settings"
+    module:setDescription "Manage environment and access help"
+
     module:registerCommand("help", help, "Displays help")
     module:registerCommand("reload", reload, "Recreate environment, initializes modules")
-    module:saveLazyLoad()
+    module:registerCommand("hotload", hotload, "Instantly loads modules without using lazy loading")
+
+    module:registerPreferences(getPreferences)
 end

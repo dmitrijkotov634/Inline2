@@ -28,23 +28,48 @@ class ModulesAdapter(
         val item = modules[position]
 
         holder.binding.apply {
+            moduleActionPositive.isEnabled = true
+            moduleActionNegative.isEnabled = true
+
             when (item) {
                 is ModuleItem.External -> {
                     moduleName.text = processFilename(item.name)
                     moduleDescription.text = item.description
-                    moduleInstall.text = root.context
+
+                    val text = root.context
                         .getString(if (item.isInstalled) R.string.remove else R.string.download)
+
+                    moduleActionNegative.visibility = if (item.isInstalled) View.VISIBLE else View.INVISIBLE
+                    moduleActionPositive.visibility = if (!item.isInstalled) View.VISIBLE else View.INVISIBLE
+
+                    moduleActionNegative.text = text
+                    moduleActionPositive.text = text
                 }
 
                 is ModuleItem.Internal -> {
                     moduleName.text = processFilename(item.name)
                     moduleDescription.text = item.description
-                    moduleInstall.text = root.context
+
+                    val text = root.context
                         .getString(if (item.isLoaded) R.string.disable else R.string.enable)
+
+                    moduleActionNegative.visibility = if (item.isLoaded) View.VISIBLE else View.INVISIBLE
+                    moduleActionPositive.visibility = if (!item.isLoaded) View.VISIBLE else View.INVISIBLE
+
+                    moduleActionNegative.text = text
+                    moduleActionPositive.text = text
                 }
             }
 
-            moduleInstall.setOnClickListener { onClick(item) }
+            moduleActionPositive.setOnClickListener {
+                moduleActionPositive.isEnabled = false
+                onClick(item)
+            }
+
+            moduleActionNegative.setOnClickListener {
+                moduleActionNegative.isEnabled = false
+                onClick(item)
+            }
         }
     }
 

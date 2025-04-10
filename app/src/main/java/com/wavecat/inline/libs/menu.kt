@@ -7,6 +7,7 @@ import com.wavecat.inline.extensions.forEach
 import com.wavecat.inline.extensions.oneArgFunction
 import com.wavecat.inline.extensions.threeArgFunction
 import com.wavecat.inline.service.InlineService
+import com.wavecat.inline.service.InlineService.Companion.RECEIVE_SELECTION_CHANGES
 import com.wavecat.inline.service.InlineService.Companion.requireService
 import com.wavecat.inline.service.commands.Query
 import org.luaj.vm2.LuaTable
@@ -49,6 +50,10 @@ class menu : TwoArgFunction() {
         NIL
     }
 
+    private val receiveSelectionChangedEvents by lazy {
+        requireService().defaultSharedPreferences.getBoolean(RECEIVE_SELECTION_CHANGES, true)
+    }
+
     private fun removeWatcher() {
         requireService().apply {
             if (menuMap.isEmpty())
@@ -82,16 +87,20 @@ class menu : TwoArgFunction() {
 
             query.answer(result.toString())
 
-            val context = Context(
-                query,
-                parts,
-                arg3,
-                query.text.length
-            )
+            if (receiveSelectionChangedEvents) {
+                val context = Context(
+                    query,
+                    parts,
+                    arg3,
+                    query.text.length
+                )
 
-            menuMap[query.accessibilityNodeInfo] = context
-            requireService().allWatchers[menuWatcher] = InlineService.TYPE_SELECTION_CHANGED
-            CoerceJavaToLua.coerce(context)
+                menuMap[query.accessibilityNodeInfo] = context
+                requireService().allWatchers[menuWatcher] = InlineService.TYPE_SELECTION_CHANGED
+                CoerceJavaToLua.coerce(context)
+            } else {
+                FALSE
+            }
         }
 
         library["map"] = CoerceJavaToLua.coerce(menuMap)

@@ -5,5 +5,5 @@ import org.luaj.vm2.LuaValue
 
 class PreferencesItem(
     val sharedPreferences: SharedPreferences,
-    val builder: LuaValue
+    val builder: LuaValue,
 )

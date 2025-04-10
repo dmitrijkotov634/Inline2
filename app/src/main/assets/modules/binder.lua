@@ -107,26 +107,26 @@ local function binds(_, query)
         table.insert(result, createUnbindMenuItem(query, entry:getKey(), binds))
         table.insert(result, " " .. entry:getKey() .. " -> " .. entry:getValue() .. "\n")
     end
-    menu.create(query, result, binds)
+    menu.create(query, result)
 end
 
 local function getPreferences(prefs)
     return {
         prefs.checkBox("binder", "Enable binder"),
         prefs.spacer(8),
-        prefs.button("Unbind All", function()
+        prefs.smallButton("Unbind All", function()
             prefs:cancel()
             prefs:create("Unbind All?", function()
                 return {
                     "This button will erase all your binds",
                     prefs.spacer(8),
                     {
-                        prefs.button("Yes", function()
+                        prefs.smallButton("Yes", function()
                             preferences:edit():clear():apply()
                             prefs:cancel()
                         end),
                         prefs.spacer(8),
-                        prefs.button("No", function()
+                        prefs.smallButton("No", function()
                             prefs:cancel()
                         end)
                     }
@@ -138,6 +138,7 @@ end
 
 return function(module)
     module:setCategory "Binder"
+    module:setDescription "Create, manage, and control command bindings and macros"
     module:registerCommand("bind", bind, "Creates a macro")
     module:registerCommand("unbind", unbind, "Deletes a macro")
     module:registerCommand("unbindall", unbindall, "Removes all macros")

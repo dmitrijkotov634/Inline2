@@ -71,11 +71,12 @@ local function aliases_(_, query)
         result[#result + 1] = " " .. entry:getKey() .. " -> " .. entry:getValue() .. "\n"
     end
 
-    menu.create(query, result, aliases_)
+    menu.create(query, result)
 end
 
 return function(module)
     module:setCategory "Settings"
+    module:setDescription "Create, remove, and list command aliases"
     module:registerCommand("addalias", addalias, "Set an alias for a command")
     module:registerCommand("delalias", delalias, "Remove an alias for a command")
     module:registerCommand("aliases", aliases_, "Aliases manager")
