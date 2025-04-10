@@ -69,6 +69,7 @@ end
 
 return function(module)
     module:setCategory "Editor"
+    module:setDescription "Text editing and transformation tools"
     module:registerCommand("replace", utils.command(replace, 2), "Changes text in which all occurrences of a substring are replaced by another substring")
     module:registerCommand("find", utils.hasArgs(find), "Selects the found fragment of text")
     module:registerCommand("repeat", repeat_, "Returns a string repeated the desired number of times")

@@ -71,6 +71,7 @@ end
 
 return function(module)
     module:setCategory "Executor"
+    module:setDescription "Run and evaluate Lua code"
     module:registerCommand("eval", utils.hasArgs(eval), "Evaluates lua code")
     module:registerCommand("exec", utils.hasArgs(exec), "Executes lua code")
     module:registerPreferences(getPreferences)

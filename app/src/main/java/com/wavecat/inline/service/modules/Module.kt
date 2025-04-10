@@ -107,13 +107,20 @@ class Module(
     }
 
     fun saveLazyLoad() {
-        service.getSharedPreferences(LAZYLOAD).edit {
+        service.lazyLoadSharedPreferences.edit {
             putStringSet(filepath, mCommands.keys)
             mCommands.forEach {
                 putString("${it.key}DESC", it.value.description)
                 putString("${it.key}CAT", it.value.category)
             }
-            apply()
+//            putStringSet("PREFS$filepath", mPreferencesItems.map { it.category }.toSet())
+        }
+    }
+
+    fun setDescription(description: String?) {
+        require(isInternal) { "setDescription works only with internal modules" }
+        service.defaultSharedPreferences.edit {
+            putString("DESC${filepath}", description)
         }
     }
 }

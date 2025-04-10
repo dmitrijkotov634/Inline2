@@ -7,7 +7,7 @@ import org.luaj.vm2.LuaValue
 
 const val LAZYLOAD: String = "lazyload"
 
-fun loadLazyCommands(
+fun loadLazyStubs(
     allCommands: MutableMap<String, Command>,
     commands: Set<String>,
     lazyPrefs: SharedPreferences,

@@ -15,7 +15,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.DividerItemDecoration
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.wavecat.inline.R
@@ -23,11 +29,20 @@ import com.wavecat.inline.databinding.ActivityMainBinding
 import com.wavecat.inline.preferences.PreferencesDialog
 import com.wavecat.inline.service.InlineService.Companion.instance
 import com.wavecat.inline.service.InlineService.Companion.requireService
+import com.wavecat.inline.service.modules.DEFAULT_ASSETS_PATH
+import kotlinx.coroutines.launch
+import java.io.File
 
 @Suppress("unused")
 class MainActivity : AppCompatActivity() {
 
-    private val model by viewModels<MainViewModel>()
+    private val model by viewModels<MainViewModel> {
+        MainModelFactory(
+            sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this),
+            modulesPath = File(application.getExternalFilesDirs(null)[0].absolutePath + "/modules").apply { mkdirs() },
+            internalModules = assets.list(DEFAULT_ASSETS_PATH)!!.toList()
+        )
+    }
 
     @SuppressLint("NotifyDataSetChanged")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +56,11 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
 
-        model.errorMessage.observe(this) { binding.errorMessage.text = it }
+        val itemDecoration = DividerItemDecoration(this, DividerItemDecoration.VERTICAL).apply {
+            setDrawable(ResourcesCompat.getDrawable(resources, R.drawable.divider, null)!!)
+        }
+
+        binding.modules.addItemDecoration(itemDecoration)
 
         val adapter = ModulesAdapter() { module ->
             when (module) {
@@ -52,7 +71,7 @@ class MainActivity : AppCompatActivity() {
                         model.enableModule(module)
                     }
 
-                    instance?.createEnvironment()
+                    model.createEnvironmentIfEfficient()
                 }
 
                 is ModuleItem.External -> {
@@ -67,13 +86,27 @@ class MainActivity : AppCompatActivity() {
 
         binding.modules.adapter = adapter
 
-        model.modules.observe(this) { list ->
-            adapter.modules = list
-            adapter.notifyDataSetChanged()
-        }
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    model.errorMessage.collect {
+                        binding.errorMessage.text = it
+                    }
+                }
 
-        model.repositoryUrl.observe(this) {
-            binding.repositoryUrl.editText?.setText(it)
+                launch {
+                    model.repositoryUrl.collect {
+                        binding.repositoryUrl.editText?.setText(it)
+                    }
+                }
+
+                launch {
+                    model.modules.collect { list ->
+                        adapter.modules = list
+                        adapter.notifyDataSetChanged()
+                    }
+                }
+            }
         }
 
         binding.repositoryUrl.editText?.setOnEditorActionListener { _, actionId, _ ->
@@ -134,7 +167,10 @@ class MainActivity : AppCompatActivity() {
             .setTitle(R.string.preferences)
             .setItems(items) { _: DialogInterface?, which: Int ->
                 requireService().allPreferences[items[which]]?.let {
-                    PreferencesDialog(this@MainActivity).create(items[which]!!, it)
+                    PreferencesDialog(this@MainActivity) {
+                        invalidateOptionsMenu()
+                    }
+                        .create(items[which]!!, it)
                 }
             }
             .setPositiveButton(android.R.string.ok) { dialog: DialogInterface, _: Int ->
@@ -159,5 +195,10 @@ class MainActivity : AppCompatActivity() {
                 ), 1
             )
         }
+    }
+
+    override fun onPause() {
+        model.onPause()
+        super.onPause()
     }
 }

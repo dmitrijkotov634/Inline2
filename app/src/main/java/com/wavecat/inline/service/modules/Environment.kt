@@ -36,14 +36,14 @@ fun Globals.loadInternalModules(
     service.assets.list(DEFAULT_ASSETS_PATH)?.forEach { fileName ->
         if (fileName !in unloaded) {
             val path = "$DEFAULT_ASSETS_PATH/$fileName"
-            val lazyCommands = lazyPrefs.getStringSet(path, emptySet())!!
+            val lazyCommands = lazyPrefs.getStringSet(fileName, emptySet())!!
 
             loadModuleByStrategy(
                 isLazy = lazyCommands.isNotEmpty(),
                 service = service,
                 lazyCommands = lazyCommands,
                 lazyPrefs = lazyPrefs,
-                path = path,
+                path = fileName,
                 isInternal = true
             ) {
                 service.assets.open(path).readScript()
@@ -90,7 +90,7 @@ private fun Globals.loadModuleByStrategy(
     scriptProvider: () -> String,
 ) {
     when {
-        isLazy -> loadLazyCommands(service.allCommands, lazyCommands, lazyPrefs) {
+        isLazy -> loadLazyStubs(service.allCommands, lazyCommands, lazyPrefs) {
             executeModule(service, scriptProvider(), path, isInternal)
         }
 

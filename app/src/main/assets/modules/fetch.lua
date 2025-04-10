@@ -170,6 +170,8 @@ end
 
 return function(module)
     module:setCategory "Fetch"
+    module:setDescription "Fancy system info with style and stats"
+
     module:registerCommand("fetch", colorama.wrap(fetch), "Displays detailed system and memory usage information")
 
     if (windows.isSupported()) then

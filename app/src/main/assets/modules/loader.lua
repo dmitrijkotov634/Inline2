@@ -53,12 +53,11 @@ end
 
 return function(module)
     module:setCategory "Loader"
+    module:setDescription "Load modules from URLs, list downloaded files, and manage deletions"
+
     module:registerCommand("load", colorama.wrap(load_), "Load module by url")
     module:registerCommand("files", colorama.wrap(files), "List of downloaded files")
     module:registerCommand("delete", colorama.wrap(delete), "Delete a file")
-
-    dirPath = inline:getExternalFilesDirs()[1]:getAbsolutePath() .. "/modules/"
-    luajava.newInstance("java.io.File", dirPath):mkdirs()
 
     module:saveLazyLoad()
 end

@@ -10,14 +10,18 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Environment
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
+import androidx.core.content.edit
 import androidx.core.os.bundleOf
 import androidx.preference.PreferenceManager
+import com.wavecat.inline.BuildConfig
 import com.wavecat.inline.preferences.PreferencesItem
 import com.wavecat.inline.service.commands.Command
 import com.wavecat.inline.service.commands.Query
+import com.wavecat.inline.service.modules.LAZYLOAD
 import com.wavecat.inline.service.modules.LuaSearcher
 import com.wavecat.inline.service.modules.loadModules
 import com.wavecat.inline.utils.runOnUiThread
@@ -28,12 +32,15 @@ import org.luaj.vm2.lib.jse.JsePlatform
 import java.util.Timer
 import java.util.regex.Pattern
 import kotlin.concurrent.timerTask
+import kotlin.system.measureTimeMillis
 
 
 class InlineService : AccessibilityService() {
     val defaultSharedPreferences: SharedPreferences by lazy {
         PreferenceManager.getDefaultSharedPreferences(this)
     }
+
+    val lazyLoadSharedPreferences by lazy { getSharedPreferences(LAZYLOAD) }
 
     var timer = Timer()
 
@@ -60,18 +67,46 @@ class InlineService : AccessibilityService() {
 
     override fun onServiceConnected() {
         instance = this
-        createEnvironment()
+
+        clearCaches()
+
+        val elapsed = measureTimeMillis {
+            createEnvironment()
+        }
+
+        defaultSharedPreferences.edit {
+            Log.d(TAG, "createEnvironment() took $elapsed ms")
+            putLong(ENVIRONMENT_PERF, elapsed)
+        }
+
         super.onServiceConnected()
 
         serviceInfo = AccessibilityServiceInfo().apply {
+            notificationTimeout = defaultSharedPreferences.getInt(NOTIFICATION_TIMEOUT, 0).toLong()
+
             flags = AccessibilityServiceInfo.DEFAULT
-            eventTypes =
-                AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
+            eventTypes = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
             feedbackType = AccessibilityServiceInfo.FEEDBACK_ALL_MASK
+
+            if (defaultSharedPreferences.getBoolean(RECEIVE_SELECTION_CHANGES, true))
+                eventTypes = eventTypes or AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
         }
 
         Thread.setDefaultUncaughtExceptionHandler { _: Thread?, e: Throwable ->
             notifyException(2, e)
+        }
+    }
+
+    fun clearCaches() {
+        val previousVersionCode =
+            lazyLoadSharedPreferences.getInt(PREVIOUS_VERSION_CODE, BuildConfig.VERSION_CODE)
+
+        if (BuildConfig.VERSION_CODE > previousVersionCode) {
+            lazyLoadSharedPreferences.edit() { clear() }
+        }
+
+        lazyLoadSharedPreferences.edit {
+            putInt(PREVIOUS_VERSION_CODE, BuildConfig.VERSION_CODE)
         }
     }
 
@@ -175,6 +210,11 @@ class InlineService : AccessibilityService() {
 
         const val PATH: String = "path"
         const val PATTERN: String = "pattern"
+
+        const val ENVIRONMENT_PERF = "environment_perf"
+        const val NOTIFICATION_TIMEOUT = "notification_timeout"
+        const val RECEIVE_SELECTION_CHANGES = "receive_selection_changes"
+        const val PREVIOUS_VERSION_CODE = "previous_version_code"
 
         const val TAG: String = "InlineService"
 

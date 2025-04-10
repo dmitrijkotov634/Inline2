@@ -14,7 +14,10 @@ import com.wavecat.inline.service.InlineService.Companion.requireService
 import org.luaj.vm2.lib.VarArgFunction.NIL
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
-class PreferencesDialog(private val context: Context) {
+class PreferencesDialog(
+    private val context: Context,
+    private val onCancelListener: () -> Unit,
+) {
     private var dialog: Dialog? = null
 
     private val builder = Builder(context = context).apply {
@@ -63,6 +66,7 @@ class PreferencesDialog(private val context: Context) {
         dialog = MaterialAlertDialogBuilder(context).apply {
             setTitle(title)
             setView(binding.root)
+            setOnCancelListener { onCancelListener() }
         }
             .show()
     }

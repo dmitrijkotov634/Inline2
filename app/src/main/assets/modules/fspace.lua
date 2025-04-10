@@ -34,6 +34,7 @@ end
 
 return function(module)
     module:setCategory "Editor"
+    module:setDescription "Floating text editor"
 
     if (windows.isSupported()) then
         module:registerCommand("fspace", fspace, "Floating text editor")

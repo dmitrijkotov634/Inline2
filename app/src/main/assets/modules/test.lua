@@ -25,5 +25,6 @@ local function createUiMenu(ui)
 end
 
 return function(module)
+    module:setDescription "Testing and debugging module"
     module:registerPreferences(createUiMenu)
 end
