@@ -13,7 +13,12 @@ import com.wavecat.inline.R
 
 private const val CHANNEL_ID = "error"
 
-fun Context.notifyException(id: Int, throwable: Throwable) {
+fun Context.notifyException(throwable: Throwable) {
+    notifyException(throwable.message.orEmpty())
+    throwable.printStackTrace()
+}
+
+fun Context.notifyException(message: String) {
     val notificationManager = NotificationManagerCompat.from(this)
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -30,7 +35,7 @@ fun Context.notifyException(id: Int, throwable: Throwable) {
 
     val notification = NotificationCompat.Builder(this, CHANNEL_ID)
         .setContentTitle(getString(R.string.app_name))
-        .setContentText(throwable.message)
+        .setContentText(message)
         .setStyle(NotificationCompat.BigTextStyle())
         .setSmallIcon(R.drawable.ic_baseline_error_24)
         .build()
@@ -40,8 +45,6 @@ fun Context.notifyException(id: Int, throwable: Throwable) {
             Manifest.permission.POST_NOTIFICATIONS
         ) == PackageManager.PERMISSION_GRANTED
     ) {
-        notificationManager.notify(id, notification)
+        notificationManager.notify(message.hashCode(), notification)
     }
-
-    throwable.printStackTrace()
 }

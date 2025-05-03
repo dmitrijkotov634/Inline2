@@ -95,7 +95,7 @@ local function getPreferences(prefs)
             historyRemove:setText("Chat history is automatically deleted after " .. progress .. " minutes")
         end),
         prefs.spacer(8),
-        "The OpenAI API is powered by a diverse set of models with different capabilities and price points.\n",
+        "The OpenAI API is powered by a diverse set of models with different capabilities and price points.",
         prefs.spacer(8),
         prefs.textInput("openai_model", "API Model"):setDefault("gpt-4o-mini"),
         prefs.spacer(8),
@@ -285,4 +285,5 @@ return function(module)
     end
 
     module:registerPreferences(getPreferences)
+    module:saveLazyLoad()
 end

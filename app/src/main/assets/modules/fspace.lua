@@ -1,8 +1,13 @@
 require "windows"
 
-local function fspace(input, query)
-    windows.createAligned(input, { noLimits = true }, function(ui)
-        local inputText = ui.textInput("space_" .. query:getArgs(), "Text")
+local preferences = inline:getSharedPreferences "notes"
+
+local function fnote(input, query)
+    windows.createAligned(input, {
+        noLimits = true,
+        sharedPreferences = preferences
+    }, function(ui)
+        local inputText = ui.textInput(query:getArgs(), "Text")
         local pasteButton = ui.smallButton("Paste", function()
             if not windows.insertText(inputText:getText()) then
                 return inline:toast("Please focus on the desired input")
@@ -33,11 +38,11 @@ local function fspace(input, query)
 end
 
 return function(module)
-    module:setCategory "Editor"
-    module:setDescription "Floating text editor"
+    module:setDescription "Floating tools"
 
     if (windows.isSupported()) then
-        module:registerCommand("fspace", fspace, "Floating text editor")
+        module:setCategory "Notes"
+        module:registerCommand("fnote", fnote, "Floating note")
         windows.supportInsert()
     end
 

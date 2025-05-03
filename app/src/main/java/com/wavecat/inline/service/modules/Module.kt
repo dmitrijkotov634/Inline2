@@ -113,7 +113,6 @@ class Module(
                 putString("${it.key}DESC", it.value.description)
                 putString("${it.key}CAT", it.value.category)
             }
-//            putStringSet("PREFS$filepath", mPreferencesItems.map { it.category }.toSet())
         }
     }
 

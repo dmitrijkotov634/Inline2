@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.view.View
 import androidx.appcompat.widget.AppCompatSeekBar
+import androidx.core.content.edit
 import com.wavecat.inline.preferences.Preference
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
@@ -78,9 +79,9 @@ class SeekBar : AppCompatSeekBar, Preference {
 
             override fun onStopTrackingTouch(seekBar: android.widget.SeekBar) {
                 sharedKey?.let {
-                    preferences?.edit()
-                        ?.putInt(it, seekBar.progress)
-                        ?.apply()
+                    preferences?.edit {
+                        putInt(it, seekBar.progress)
+                    }
                 }
 
                 onStopTracking?.call(

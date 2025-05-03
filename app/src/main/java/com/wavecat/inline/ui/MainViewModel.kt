@@ -21,7 +21,7 @@ import java.io.File
 class MainViewModel(
     private val sharedPreferences: SharedPreferences,
     private val modulesPath: File,
-    private val internalModules: List<String>,
+    internalModules: List<String>,
 ) : ViewModel() {
 
     private val _modules = MutableStateFlow<List<ModuleItem>>(emptyList())
@@ -41,7 +41,19 @@ class MainViewModel(
     private val unloaded: MutableSet<String> =
         HashSet(sharedPreferences.getStringSet(UNLOADED, defaultUnloaded)!!)
 
-    private var applyChanges = false
+    private var changesApplied = true
+    private var allLoaded = false
+
+    private val internalModuleItems = internalModules.map { moduleName ->
+        ModuleItem.Internal(
+            name = moduleName,
+            description = sharedPreferences.getString(
+                "DESC$moduleName",
+                "Internal module"
+            )!!,
+            isLoaded = !unloaded.contains(moduleName)
+        )
+    }
 
     private fun updateModuleList(update: (ModuleItem) -> ModuleItem) {
         _modules.update { current ->
@@ -57,12 +69,17 @@ class MainViewModel(
         }
     }
 
+    private fun showInternals() {
+        _modules.value = internalModuleItems
+    }
+
     fun loadModules() = viewModelScope.launch(Dispatchers.IO) {
         runCatching {
             val request = Request.Builder().url("${_repositoryUrl.value}/index.tsv").build()
 
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
+                    showInternals()
                     postError("Loading error: HTTP ${response.code}")
                     return@use
                 }
@@ -73,17 +90,6 @@ class MainViewModel(
                     lines.drop(1)
                         .mapNotNull { it.parseModuleLine() }
                         .toList()
-                }
-
-                val internalModuleItems = internalModules.map { moduleName ->
-                    ModuleItem.Internal(
-                        name = moduleName,
-                        description = sharedPreferences.getString(
-                            "DESC$moduleName",
-                            "Internal module"
-                        )!!,
-                        isLoaded = !unloaded.contains(moduleName)
-                    )
                 }
 
                 val mergedModules = (moduleList + internalModuleItems).sortedWith(
@@ -99,6 +105,7 @@ class MainViewModel(
             }
         }
             .onFailure {
+                showInternals()
                 postError("An error occurred while loading modules: ${it.localizedMessage}")
             }
     }
@@ -185,16 +192,29 @@ class MainViewModel(
     }
 
     fun createEnvironmentIfEfficient() {
+        allLoaded = false
+
         if (sharedPreferences.getLong(ENVIRONMENT_PERF, 0) < 500)
             InlineService.instance?.createEnvironment()
         else
-            applyChanges = true
+            changesApplied = false
     }
 
     fun onPause() {
-        if (applyChanges) {
-            InlineService.instance?.createEnvironment()
-            applyChanges = false
+        if (changesApplied) return
+
+        InlineService.instance?.createEnvironment()
+        changesApplied = true
+    }
+
+    fun loadAll() {
+        if (allLoaded) return
+
+        InlineService.instance?.apply {
+            lazyLoadSharedPreferences.edit() { clear() }
+            createEnvironment()
+            changesApplied = true
+            allLoaded = true
         }
     }
 

@@ -9,6 +9,7 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.appcompat.widget.AppCompatSpinner
+import androidx.core.content.edit
 import com.wavecat.inline.extensions.forEach
 import com.wavecat.inline.preferences.Preference
 import org.luaj.vm2.LuaTable
@@ -75,10 +76,9 @@ class Spinner(context: Context?, set: LuaTable) : AppCompatSpinner(context!!), P
                 }
 
                 sharedKey?.let {
-                    preferences
-                        ?.edit()
-                        ?.putString(it, adapter.getItem(position))
-                        ?.apply()
+                    preferences?.edit {
+                        putString(it, adapter.getItem(position))
+                    }
                 }
 
                 if (listener != null)

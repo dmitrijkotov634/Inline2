@@ -4,9 +4,6 @@ package com.wavecat.inline.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Environment
@@ -58,7 +55,7 @@ class InlineService : AccessibilityService() {
 
     val pattern: Pattern by lazy {
         Pattern.compile(
-            defaultSharedPreferences.getString(PATTERN, "(\\{([\\S]+)(?:\\s([\\S\\s]+?)\\}*)?\\}\\$)+")!!,
+            defaultSharedPreferences.getString(PATTERN, "(\\{([\\S]+)(?:\\s([\\S\\s]+?)\\}*)?\\}[\\$₽₴])+")!!,
             Pattern.DOTALL
         )
     }
@@ -93,7 +90,7 @@ class InlineService : AccessibilityService() {
         }
 
         Thread.setDefaultUncaughtExceptionHandler { _: Thread?, e: Throwable ->
-            notifyException(2, e)
+            notifyException(e)
         }
     }
 
@@ -103,6 +100,13 @@ class InlineService : AccessibilityService() {
 
         if (BuildConfig.VERSION_CODE > previousVersionCode) {
             lazyLoadSharedPreferences.edit() { clear() }
+
+            defaultSharedPreferences.edit {
+                defaultSharedPreferences.all.forEach {
+                    if (it.key.startsWith("DESC"))
+                        remove(it.key)
+                }
+            }
         }
 
         lazyLoadSharedPreferences.edit {
@@ -119,6 +123,8 @@ class InlineService : AccessibilityService() {
         timer.apply { cancel(); purge() }
         timer = Timer()
 
+        com.wavecat.inline.libs.windows.closeAll()
+
         JsePlatform.standardGlobals().apply {
             set("inline", CoerceJavaToLua.coerce(this@InlineService))
             get("package").get("searchers").set(3, LuaSearcher(this))
@@ -129,8 +135,8 @@ class InlineService : AccessibilityService() {
                     sharedPreferences = defaultSharedPreferences,
                     defaultPath = defaultPath
                 )
-            }.onFailure {
-                notifyException(1, it)
+            }.onFailure { e ->
+                notifyException("createEnvironment(): ${e.message}")
             }
         }
     }
@@ -139,13 +145,16 @@ class InlineService : AccessibilityService() {
 
     fun getSharedPreferences(name: String?): SharedPreferences = getSharedPreferences(name, MODE_PRIVATE)
 
-    private fun notifyWatchers(accessibilityNodeInfo: AccessibilityNodeInfo, eventType: Int) =
+    private fun notifyWatchers(accessibilityNodeInfo: AccessibilityNodeInfo, eventType: Int) {
         allWatchers.filter { (_, value) -> (value and eventType) == eventType }
             .forEach { (key, _) ->
                 runCatching {
                     key.call(CoerceJavaToLua.coerce(accessibilityNodeInfo), LuaValue.valueOf(eventType))
-                }.onFailure { e -> notifyException(key.hashCode(), e) }
+                }.onFailure { e ->
+                    notifyException("notifyWatchers() $key: ${e.message}")
+                }
             }
+    }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         val node = event.source ?: return
@@ -170,13 +179,17 @@ class InlineService : AccessibilityService() {
                     val values = finder.invoke(LuaValue.valueOf(matcher.group(2)), args, callable)
                     if (values.arg1().isfunction()) callable = values.arg1()
                     if (values.arg(2) is LuaString) args = values.arg(2)
-                }.onFailure { notifyException(callable.hashCode(), it) }
+                }.onFailure { e ->
+                    notifyException("CommandFinders: ${e.message}")
+                }
             }
 
             if (!callable.isnil()) {
                 val query = Query(node, text, matcher.group(), args.tojstring())
                 runCatching { callable.call(CoerceJavaToLua.coerce(node), CoerceJavaToLua.coerce(query)) }
-                    .onFailure { notifyException(callable.hashCode(), it) }
+                    .onFailure { e ->
+                        notifyException("Command: ${e.message}")
+                    }
 
                 text = query.text
             }
@@ -188,14 +201,9 @@ class InlineService : AccessibilityService() {
             try {
                 function.checkfunction().call()
             } catch (e: Exception) {
-                notifyException(function.hashCode(), e)
+                notifyException("TimerTask $function: ${e.message}")
             }
         }
-    }
-
-    fun copyToClipboard(string: String) {
-        val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboardManager.setPrimaryClip(ClipData.newPlainText("Inline", string))
     }
 
     override fun onInterrupt() {

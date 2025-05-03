@@ -22,7 +22,7 @@ fun Globals.loadModules(
     defaultPath: Set<String>,
 ) {
     val unloaded = sharedPreferences.getStringSet(UNLOADED, defaultUnloaded) ?: defaultUnloaded
-    val lazyPrefs = service.getSharedPreferences(LAZYLOAD)
+    val lazyPrefs = service.lazyLoadSharedPreferences
 
     loadInternalModules(service, lazyPrefs, unloaded)
     loadExternalModules(service, sharedPreferences, unloaded, defaultPath, lazyPrefs)
