@@ -158,7 +158,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(this)
         }
 
-    private fun reload() = instance?.createEnvironment() ?: openAccessibilitySettings()
+    private fun reload() = model.reload() ?: openAccessibilitySettings()
 
     private fun showPreferencesDialog() {
         requireService().apply {
