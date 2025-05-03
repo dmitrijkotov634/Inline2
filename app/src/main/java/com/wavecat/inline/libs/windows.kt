@@ -21,14 +21,14 @@ import org.luaj.vm2.lib.TwoArgFunction
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
 class windows : TwoArgFunction() {
-    private var latestAccessibilityNodeInfo: AccessibilityNodeInfo? = null
-    private var isFocusedOnSelf: Boolean = false
-
     private val wrappedContext by lazy {
         DynamicColors.wrapContextIfAvailable(
             ContextThemeWrapper(requireService(), R.style.Theme_Inline)
         )
     }
+
+    private var latestAccessibilityNodeInfo: AccessibilityNodeInfo? = null
+    private var isFocusedOnSelf: Boolean = false
 
     private val latestNodeWatcher = oneArgFunction { arg ->
         val accessibilityNodeInfo =
@@ -43,7 +43,6 @@ class windows : TwoArgFunction() {
     }
 
     private var supportsInsert = false
-    private val windows = mutableSetOf<FloatingWindow>()
 
     private fun enableWatcher() {
         requireService().apply {
@@ -69,6 +68,12 @@ class windows : TwoArgFunction() {
             if (supportsInsert && windows.isEmpty())
                 disableWatcher()
         }
+    }
+
+    companion object {
+        private val windows = mutableSetOf<FloatingWindow>()
+
+        fun closeAll() = windows.forEach { it.close() }
     }
 
     override fun call(name: LuaValue, env: LuaValue): LuaValue {
@@ -129,7 +134,7 @@ class windows : TwoArgFunction() {
         }
 
         library["closeAll"] = zeroArgFunction {
-            windows.forEach { it.close() }
+            closeAll()
             NIL
         }
 

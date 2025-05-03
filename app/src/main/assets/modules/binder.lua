@@ -1,5 +1,6 @@
 require "utils"
 require "menu"
+require "colorama"
 
 local preferences = inline:getSharedPreferences "binder2"
 local enabled = inline:getDefaultSharedPreferences():getBoolean("binder", true)
@@ -8,19 +9,35 @@ local Query = luajava.bindClass "com.wavecat.inline.service.commands.Query"
 
 local function bind(_, query)
     local args = utils.split(query:getArgs(), " ", 2)
+
     if #args < 2 then
         return inline:toast("Invalid arguments")
     end
-    local data = utils.split(args[2], " ", 2)
+
+    local rawValue = args[2]
+    local key = args[1]
+
+    if not rawValue:find("^!end%s") then
+        key = utils.escape(args[1])
+    end
+
+    local cleanValue = rawValue:gsub("^!end%s*", "")
+
+    local data = utils.split(cleanValue, " ", 2)
     if not inline:getAllCommands():containsKey(data[1]) then
         return inline:toast("Command not found")
     end
-    preferences:edit():putString(utils.escape(args[1]), args[2]):apply()
+
+    preferences:edit():putString(key, args[2]):apply()
     query:answer()
 end
 
 local function unbind(_, query)
-    preferences:edit():remove(utils.escape(query:getArgs())):apply()
+    preferences:edit()
+               :remove(utils.escape(query:getArgs()))
+               :remove(query:getArgs())
+               :apply()
+
     query:answer()
 end
 
@@ -32,21 +49,25 @@ end
 local function activate(_, query)
     enabled = not enabled
     inline:getDefaultSharedPreferences():edit():putBoolean("binder", enabled):apply()
-    query:answer()
+    menu.create(query, { enabled and "Enabled" or "Disabled" })
+end
+
+local function echoHtml(_, query)
+    colorama.of(query):answer(query:getArgs())
 end
 
 local function echo(_, query)
     query:answer(query:getArgs())
 end
 
-local function executeBinding(input, expression, bindingValue)
+local function executeBinding(input, text, expression, bindingValue)
     local data = utils.split(bindingValue, " ", 2)
     local command = inline:getAllCommands():get(data[1])
     if not command then
         return nil
     end
     local callable = command:getCallable()
-    local query = Query.new(input, input:getText(), expression, data[2] or "")
+    local query = Query.new(input, text, expression, data[2] or "")
     callable(input, query)
     return query:getText()
 end
@@ -59,12 +80,19 @@ local function binder(input)
             local iterator = preferences:getAll():entrySet():iterator()
             while iterator:hasNext() do
                 local entry = iterator:next()
-                text = text:gsub(
-                    entry:getKey(),
-                    function(expression)
-                        return executeBinding(input, expression, entry:getValue())
+                local key = entry:getKey()
+                local value = entry:getValue()
+                if value:find("^!end%s") then
+                    if text:sub(-#key) == key then
+                        local cleanValue = value:gsub("^!end%s*", "")
+                        executeBinding(input, text, key, cleanValue)
+                        break
                     end
-                )
+                else
+                    text = text:gsub(key, function(expression)
+                        return executeBinding(input, input:getText(), expression, value)
+                    end)
+                end
             end
         end
     end
@@ -113,26 +141,28 @@ end
 local function getPreferences(prefs)
     return {
         prefs.checkBox("binder", "Enable binder"),
-        prefs.spacer(8),
+        prefs.spacer(12),
         prefs.smallButton("Unbind All", function()
             prefs:cancel()
             prefs:create("Unbind All?", function()
                 return {
                     "This button will erase all your binds",
-                    prefs.spacer(8),
+                    prefs.spacer(16),
                     {
                         prefs.smallButton("Yes", function()
                             preferences:edit():clear():apply()
                             prefs:cancel()
                         end),
-                        prefs.spacer(8),
+                        prefs.spacer(14),
                         prefs.smallButton("No", function()
                             prefs:cancel()
                         end)
-                    }
+                    },
+                    prefs.spacer(12),
                 }
             end)
-        end)
+        end),
+        prefs.spacer(12),
     }
 end
 
@@ -144,6 +174,7 @@ return function(module)
     module:registerCommand("unbindall", unbindall, "Removes all macros")
     module:registerCommand("binder", activate, "Toggles the state of the processor")
     module:registerCommand("echo", echo, "Prints the arguments passed to the command")
+    module:registerCommand("echohtml", echoHtml, "Prints the arguments passed to the command with formatting")
     module:registerCommand("binds", binds, "Bindings manager")
     module:registerPreferences(getPreferences)
     module:registerWatcher(binder)

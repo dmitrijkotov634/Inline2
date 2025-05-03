@@ -7,7 +7,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import android.text.Html
-import android.text.TextUtils
+import androidx.core.text.htmlEncode
 import com.wavecat.inline.extensions.oneArgFunction
 import com.wavecat.inline.extensions.twoArgFunction
 import com.wavecat.inline.extensions.varArgFunction
@@ -25,15 +25,6 @@ class colorama : TwoArgFunction() {
     override fun call(name: LuaValue, env: LuaValue): LuaValue {
         val library: LuaValue = tableOf()
 
-        library["init"] = twoArgFunction { arg1, arg2 ->
-            val availability = if (arg1.isboolean()) arg1 else arg2 // legacy
-
-            if (!availability.isnil())
-                Companion.availability = availability.checkboolean()
-
-            NIL
-        }
-
         library["wrap"] = oneArgFunction { value ->
             value.checkfunction()
 
@@ -50,12 +41,12 @@ class colorama : TwoArgFunction() {
         }
 
         library["quote"] = oneArgFunction { text ->
-            valueOf(TextUtils.htmlEncode(text.checkjstring()))
+            valueOf(text.checkjstring().htmlEncode())
         }
 
         library["font"] = twoArgFunction { text, color ->
             val colorAttr = color.takeIf { !it.isnil() }?.tojstring()?.let { " color=\"$it\"" } ?: ""
-            valueOf("<font$colorAttr>${TextUtils.htmlEncode(text.tojstring())}</font>")
+            valueOf("<font$colorAttr>${text.tojstring().htmlEncode()}</font>")
         }
 
         library["text"] = varArgFunction { varargs ->
@@ -78,6 +69,7 @@ class colorama : TwoArgFunction() {
         library["small"] = HtmlTag("small")
         library["big"] = HtmlTag("big")
         library["strike"] = HtmlTag("strike")
+        library["pre"] = HtmlTag("pre")
         library["subscript"] = HtmlTag("sub")
         library["superscript"] = HtmlTag("sup")
 
@@ -120,6 +112,9 @@ class colorama : TwoArgFunction() {
         override fun answer(reply: String?) {
             val raw = reply?.let { formatHtml(it) } ?: return answerRaw(null)
 
+            if (!availability)
+                return answerRaw(raw)
+
             for (attempt in 0..2) {
                 clipboardManager.setPrimaryClip(ClipData.newHtmlText("colorama", raw, reply))
 
@@ -147,9 +142,15 @@ class colorama : TwoArgFunction() {
     }
 
     companion object {
+        private const val DISABLE_HTML = "disable_html"
+
+        private val service = requireService()
+
         val clipboardManager: ClipboardManager by lazy {
-            requireService().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            service.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         }
+
+        private var availability = !service.defaultSharedPreferences.getBoolean(DISABLE_HTML, false)
 
         fun formatHtml(reply: String) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             Html.fromHtml(reply, Html.FROM_HTML_MODE_LEGACY)
@@ -157,7 +158,5 @@ class colorama : TwoArgFunction() {
             @Suppress("DEPRECATION")
             Html.fromHtml(reply)
         }.toString()
-
-        private var availability = true
     }
 }

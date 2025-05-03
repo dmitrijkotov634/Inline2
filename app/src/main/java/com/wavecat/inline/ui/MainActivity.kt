@@ -161,22 +161,24 @@ class MainActivity : AppCompatActivity() {
     private fun reload() = instance?.createEnvironment() ?: openAccessibilitySettings()
 
     private fun showPreferencesDialog() {
-        val items: Array<String?> = requireService().allPreferences.keys.toTypedArray()
+        requireService().apply {
+            model.loadAll()
 
-        MaterialAlertDialogBuilder(this@MainActivity)
-            .setTitle(R.string.preferences)
-            .setItems(items) { _: DialogInterface?, which: Int ->
-                requireService().allPreferences[items[which]]?.let {
-                    PreferencesDialog(this@MainActivity) {
-                        invalidateOptionsMenu()
+            val items: Array<String?> = allPreferences.keys.toTypedArray()
+
+            MaterialAlertDialogBuilder(this@MainActivity)
+                .setTitle(R.string.preferences)
+                .setItems(items) { _: DialogInterface?, which: Int ->
+                    requireService().allPreferences[items[which]]?.let {
+                        PreferencesDialog(this@MainActivity) { invalidateOptionsMenu() }
+                            .create(items[which]!!, it)
                     }
-                        .create(items[which]!!, it)
                 }
-            }
-            .setPositiveButton(android.R.string.ok) { dialog: DialogInterface, _: Int ->
-                dialog.cancel()
-            }
-            .show()
+                .setPositiveButton(android.R.string.ok) { dialog: DialogInterface, _: Int ->
+                    dialog.cancel()
+                }
+                .show()
+        }
     }
 
     private fun showExternalStorageSettings() {

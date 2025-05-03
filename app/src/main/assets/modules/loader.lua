@@ -1,7 +1,7 @@
 require "http"
 require "colorama"
 
-local dirPath
+local dirPath = inline:getExternalFilesDirs()[1]:getAbsolutePath() .. "/modules/"
 
 local function delete(_, query)
     luajava.newInstance("java.io.File", dirPath .. query:getArgs()):delete()

@@ -75,22 +75,30 @@ local function getPreferences(prefs)
         prefs.spacer(8),
         currentValue,
         prefs.spacer(12),
-        prefs.seekBar("notification_timeout", 5000):setOnProgressChanged(function(progress)
+        prefs.seekBar("notification_timeout", 3000):setOnProgressChanged(function(progress)
             currentValue:setText("Current value: " .. progress .. " ms")
         end),
         prefs.spacer(8),
         "Disabling this feature breaks the functionality of interactive menus, stops receiving cursor position change events, and may interfere with text insertion from floating windows.",
+        prefs.spacer(8),
         prefs.checkBox("receive_selection_changes", "Receive selection changes"):setDefault(true),
+        prefs.spacer(8),
         "Changes will apply after restarting the service from the device settings!",
         prefs.spacer(8),
+        prefs.checkBox("disable_html", "Disable HTML formatting"),
+        prefs.spacer(8),
         {
-            prefs.smallButton("Disable service", function()
+            prefs.button("Disable service", function()
                 inline:disableSelf()
                 prefs:cancel()
             end)
         },
         prefs.spacer(8)
     }
+end
+
+local function pkgname(input, query)
+    query:answer(input:getPackageName())
 end
 
 return function(module)
@@ -100,6 +108,8 @@ return function(module)
     module:registerCommand("help", help, "Displays help")
     module:registerCommand("reload", reload, "Recreate environment, initializes modules")
     module:registerCommand("hotload", hotload, "Instantly loads modules without using lazy loading")
+    module:registerCommand("pkgname", pkgname, "Gives the package name of the app")
 
     module:registerPreferences(getPreferences)
+    module:saveLazyLoad()
 end

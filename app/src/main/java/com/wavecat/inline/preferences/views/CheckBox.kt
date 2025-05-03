@@ -7,8 +7,10 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.view.View
 import android.widget.CompoundButton
+import androidx.core.content.edit
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.wavecat.inline.preferences.Preference
+import com.wavecat.inline.utils.dp
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
@@ -22,18 +24,23 @@ class CheckBox : MaterialCheckBox, Preference {
 
     private var defaultValue = false
 
-    constructor(context: Context?, sharedKey: String?, text: String?) : super(context) {
+    constructor(context: Context?, sharedKey: String?, text: String?) : this(context) {
         this.sharedKey = sharedKey
         setText(text)
     }
 
-    constructor(context: Context?, text: String?, listener: LuaValue?) : super(context) {
+    constructor(context: Context?, text: String?, listener: LuaValue?) : this(context) {
         this.listener = listener
         setText(text)
     }
 
-    constructor(context: Context?, text: String?) : super(context) {
+    constructor(context: Context?, text: String?) : this(context) {
         setText(text)
+    }
+
+    constructor(context: Context?) : super(context) {
+        minimumHeight = 36.dp
+        translationX = (-6).dp.toFloat()
     }
 
     fun setListener(listener: LuaValue?): CheckBox {
@@ -61,10 +68,9 @@ class CheckBox : MaterialCheckBox, Preference {
 
         setOnCheckedChangeListener { _: CompoundButton?, isChecked: Boolean ->
             sharedKey?.let {
-                preferences
-                    ?.edit()
-                    ?.putBoolean(it, isChecked)
-                    ?.apply()
+                preferences?.edit {
+                    putBoolean(it, isChecked)
+                }
             }
 
             if (listener != null)
