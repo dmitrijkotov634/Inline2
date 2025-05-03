@@ -195,15 +195,18 @@ class MainViewModel(
         allLoaded = false
 
         if (sharedPreferences.getLong(ENVIRONMENT_PERF, 0) < 500)
-            InlineService.instance?.createEnvironment()
+            reload()
         else
             changesApplied = false
     }
 
     fun onPause() {
         if (changesApplied) return
+        reload()
+    }
 
-        InlineService.instance?.createEnvironment()
+    fun reload() = InlineService.instance?.apply {
+        createEnvironment()
         changesApplied = true
     }
 
@@ -212,8 +215,7 @@ class MainViewModel(
 
         InlineService.instance?.apply {
             lazyLoadSharedPreferences.edit() { clear() }
-            createEnvironment()
-            changesApplied = true
+            reload()
             allLoaded = true
         }
     }
