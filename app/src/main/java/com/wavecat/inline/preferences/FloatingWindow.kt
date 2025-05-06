@@ -189,9 +189,11 @@ class FloatingWindow(private val context: Context) {
 
                     MotionEvent.ACTION_OUTSIDE -> {
                         if (autoFocus) {
-                            lp.flags = lp.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                            mWindowManager.updateViewLayout(mLayout, lp)
-                            builder.get("onFocusChanged").takeIf { !it.isnil() }?.call(valueOf(false))
+                            mLayout?.let { view ->
+                                lp.flags = lp.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                                mWindowManager.updateViewLayout(view, lp)
+                                builder.get("onFocusChanged").takeIf { !it.isnil() }?.call(valueOf(false))
+                            }
                         }
 
                         return true
@@ -200,7 +202,6 @@ class FloatingWindow(private val context: Context) {
                 return false
             }
         })
-
 
         val preferencesList = init.call(CoerceJavaToLua.coerce(builder)).checktable()
 
