@@ -41,11 +41,6 @@ local function unbind(_, query)
     query:answer()
 end
 
-local function unbindall(_, query)
-    preferences:edit():clear():apply()
-    query:answer()
-end
-
 local function activate(_, query)
     enabled = not enabled
     inline:getDefaultSharedPreferences():edit():putBoolean("binder", enabled):apply()
@@ -171,7 +166,6 @@ return function(module)
     module:setDescription "Create, manage, and control command bindings and macros"
     module:registerCommand("bind", bind, "Creates a macro")
     module:registerCommand("unbind", unbind, "Deletes a macro")
-    module:registerCommand("unbindall", unbindall, "Removes all macros")
     module:registerCommand("binder", activate, "Toggles the state of the processor")
     module:registerCommand("echo", echo, "Prints the arguments passed to the command")
     module:registerCommand("echohtml", echoHtml, "Prints the arguments passed to the command with formatting")
