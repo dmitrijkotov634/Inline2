@@ -142,7 +142,7 @@ class colorama : TwoArgFunction() {
     }
 
     companion object {
-        private const val DISABLE_HTML = "disable_html"
+        private const val DISABLE_HTML_PREF = "disable_html"
 
         private val service = requireService()
 
@@ -150,7 +150,7 @@ class colorama : TwoArgFunction() {
             service.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         }
 
-        private var availability = !service.defaultSharedPreferences.getBoolean(DISABLE_HTML, false)
+        private var availability = !service.defaultSharedPreferences.getBoolean(DISABLE_HTML_PREF, false)
 
         fun formatHtml(reply: String) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             Html.fromHtml(reply, Html.FROM_HTML_MODE_LEGACY)

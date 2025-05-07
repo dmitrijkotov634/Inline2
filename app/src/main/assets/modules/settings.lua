@@ -57,15 +57,6 @@ local function reload(_, query)
     inline:createEnvironment()
 end
 
-local function hotload(_, query)
-    inline:getLazyLoadSharedPreferences()
-          :edit()
-          :clear()
-          :apply()
-
-    reload(_, query)
-end
-
 local function getPreferences(prefs)
     local notificationTimeout = inline:getDefaultSharedPreferences():getInt("notification_timeout", 0)
     local currentValue = prefs.text("Current value: " .. notificationTimeout .. " ms")
@@ -86,13 +77,6 @@ local function getPreferences(prefs)
         "Changes will apply after restarting the service from the device settings!",
         prefs.spacer(8),
         prefs.checkBox("disable_html", "Disable HTML formatting"),
-        prefs.spacer(8),
-        {
-            prefs.button("Disable service", function()
-                inline:disableSelf()
-                prefs:cancel()
-            end)
-        },
         prefs.spacer(8)
     }
 end
@@ -107,7 +91,6 @@ return function(module)
 
     module:registerCommand("help", help, "Displays help")
     module:registerCommand("reload", reload, "Recreate environment, initializes modules")
-    module:registerCommand("hotload", hotload, "Instantly loads modules without using lazy loading")
     module:registerCommand("pkgname", pkgname, "Gives the package name of the app")
 
     module:registerPreferences(getPreferences)
