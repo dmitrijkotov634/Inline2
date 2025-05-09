@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity() {
                         model.enableModule(module)
                     }
 
-                    model.createEnvironmentIfEfficient()
+                    model.loadModulesIfEfficient()
                 }
 
                 is ModuleItem.External -> {
@@ -124,7 +124,7 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.POST_NOTIFICATIONS
             )
 
-        model.loadModules()
+        model.loadModulesList()
     }
 
     override fun onResume() {

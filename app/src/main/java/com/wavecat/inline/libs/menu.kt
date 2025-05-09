@@ -85,7 +85,7 @@ class menu : TwoArgFunction() {
                 }
             }
 
-            query.answer(result.toString())
+            query.answer(result.toString(), cursorToEnd = true)
 
             if (receiveSelectionChangedEvents) {
                 val context = Context(
