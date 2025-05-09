@@ -22,6 +22,7 @@ import com.wavecat.inline.service.modules.LAZYLOAD
 import com.wavecat.inline.service.modules.LuaSearcher
 import com.wavecat.inline.service.modules.loadModules
 import com.wavecat.inline.utils.runOnUiThread
+import org.luaj.vm2.Globals
 import org.luaj.vm2.LuaString
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
@@ -46,7 +47,9 @@ class InlineService : AccessibilityService() {
     val allPreferences: MutableMap<String?, HashSet<PreferencesItem>> = mutableMapOf()
     val allCommandFinders: MutableSet<LuaValue> = mutableSetOf()
 
-    val defaultPath by lazy {
+    private var globals: Globals? = null
+
+    private val defaultPath by lazy {
         hashSetOf(
             Environment.getExternalStorageDirectory().path + "/inline",
             getExternalFilesDirs(null)[0].absolutePath + "/modules"
@@ -115,6 +118,15 @@ class InlineService : AccessibilityService() {
     }
 
     fun createEnvironment() {
+        globals = JsePlatform.standardGlobals().apply {
+            set("inline", CoerceJavaToLua.coerce(this@InlineService))
+            get("package").get("searchers").set(3, LuaSearcher(this))
+        }
+
+        loadModules()
+    }
+
+    fun loadModules() = globals?.apply {
         allCommands.clear()
         allWatchers.clear()
         allPreferences.clear()
@@ -125,19 +137,14 @@ class InlineService : AccessibilityService() {
 
         com.wavecat.inline.libs.windows.closeAll()
 
-        JsePlatform.standardGlobals().apply {
-            set("inline", CoerceJavaToLua.coerce(this@InlineService))
-            get("package").get("searchers").set(3, LuaSearcher(this))
-
-            runCatching {
-                loadModules(
-                    service = this@InlineService,
-                    sharedPreferences = defaultSharedPreferences,
-                    defaultPath = defaultPath
-                )
-            }.onFailure { e ->
-                notifyException("createEnvironment(): ${e.message}")
-            }
+        runCatching {
+            loadModules(
+                service = this@InlineService,
+                sharedPreferences = defaultSharedPreferences,
+                defaultPath = defaultPath
+            )
+        }.onFailure { e ->
+            notifyException("loadModules(): ${e.message}")
         }
     }
 

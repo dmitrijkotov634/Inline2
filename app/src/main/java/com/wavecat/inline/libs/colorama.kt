@@ -109,7 +109,7 @@ class colorama : TwoArgFunction() {
         private val startExp = startPosition
         private var endExp = startPosition + expression.length
 
-        override fun answer(reply: String?) {
+        override fun answer(reply: String?, cursorToEnd: Boolean) {
             val raw = reply?.let { formatHtml(it) } ?: return answerRaw(null)
 
             if (!availability)
@@ -125,7 +125,11 @@ class colorama : TwoArgFunction() {
                 endExp = startExp + raw.length
 
                 accessibilityNodeInfo.refresh()
+
                 if (accessibilityNodeInfo.text.length == text.length) {
+                    if (cursorToEnd)
+                        endExp = text.length
+
                     setSelection(accessibilityNodeInfo, endExp, endExp)
                     break
                 }
@@ -134,7 +138,7 @@ class colorama : TwoArgFunction() {
             }
         }
 
-        fun answerRaw(reply: String?) = super.answer(reply)
+        fun answerRaw(reply: String?) = super.answer(reply, false)
 
         override fun toString(): String {
             return "ColoramaQuery{currentText=$currentText, expression=$expression, args=$args, text=$text, startExp=$startExp, endExp=$endExp}"

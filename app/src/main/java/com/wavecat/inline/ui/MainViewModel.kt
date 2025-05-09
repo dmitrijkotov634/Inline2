@@ -73,7 +73,7 @@ class MainViewModel(
         _modules.value = internalModuleItems
     }
 
-    fun loadModules() = viewModelScope.launch(Dispatchers.IO) {
+    fun loadModulesList() = viewModelScope.launch(Dispatchers.IO) {
         runCatching {
             val request = Request.Builder().url("${_repositoryUrl.value}/index.tsv").build()
 
@@ -135,7 +135,7 @@ class MainViewModel(
                 }
 
                 postError(null)
-                createEnvironmentIfEfficient()
+                loadModulesIfEfficient()
             }
         }
             .onFailure {
@@ -185,39 +185,46 @@ class MainViewModel(
             }
 
             postError(null)
-            createEnvironmentIfEfficient()
+            loadModulesIfEfficient()
         }.onFailure {
             postError("An error occurred while removing module: ${it.localizedMessage}")
         }
     }
 
-    fun createEnvironmentIfEfficient() {
+    fun loadModulesIfEfficient() {
         allLoaded = false
+        val perfValue = sharedPreferences.getLong(ENVIRONMENT_PERF, 0)
 
-        if (sharedPreferences.getLong(ENVIRONMENT_PERF, 0) < 500)
-            reload()
-        else
+        if (perfValue < 500) {
+            InlineService.instance?.loadModules()
+        } else {
             changesApplied = false
+        }
     }
 
     fun onPause() {
-        if (changesApplied) return
-        reload()
+        if (!changesApplied) {
+            InlineService.instance?.loadModules()
+            changesApplied = true
+        }
     }
 
     fun reload() = InlineService.instance?.apply {
         createEnvironment()
         changesApplied = true
+        allLoaded = false
     }
 
     fun loadAll() {
         if (allLoaded) return
 
         InlineService.instance?.apply {
-            lazyLoadSharedPreferences.edit() { clear() }
-            reload()
-            allLoaded = true
+            lazyLoadSharedPreferences.edit { clear() }
+            loadModules()
         }
+
+        changesApplied = true
+        allLoaded = true
     }
 
     private fun postError(message: String?) {
@@ -243,7 +250,7 @@ class MainViewModel(
             putString(REPOSITORY_URL, newUrl)
         }
 
-        loadModules()
+        loadModulesList()
     }
 
     companion object {

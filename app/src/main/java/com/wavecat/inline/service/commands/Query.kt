@@ -24,11 +24,12 @@ open class Query(
     val startPosition: Int
         get() = currentText.indexOf(expression)
 
-    open fun answer(reply: String?) {
+    open fun answer(reply: String?, cursorToEnd: Boolean = false) {
         val message = reply.orEmpty()
         text = replaceExpression(message)
 
-        val position = accessibilityNodeInfo.textSelectionStart - expression.length + message.length
+        val position = if (cursorToEnd) text.length else
+            accessibilityNodeInfo.textSelectionStart - expression.length + message.length
 
         setText(accessibilityNodeInfo, text)
         setSelection(accessibilityNodeInfo, position, position)

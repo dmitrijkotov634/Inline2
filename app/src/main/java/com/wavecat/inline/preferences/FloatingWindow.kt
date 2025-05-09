@@ -83,6 +83,7 @@ class FloatingWindow(private val context: Context) {
         val offsetX = config.get("offsetX").optint(0).dp
         val offsetY = config.get("offsetY").optint(0).dp
         val alignment = config.get("alignment").optjstring("left")
+        val position = config.get("position").optjstring("above")
 
         positionX = if (alignment == "right") {
             screenWidth - nodeRect.left - offsetX
@@ -90,12 +91,17 @@ class FloatingWindow(private val context: Context) {
             nodeRect.left - offsetX
         }
 
-        positionY = screenHeight - nodeRect.top - offsetY
-
-        windowGravity = if (alignment == "right") {
-            Gravity.BOTTOM or Gravity.RIGHT
+        positionY = if (position == "above") {
+            screenHeight - nodeRect.top + offsetY
         } else {
-            Gravity.BOTTOM or Gravity.LEFT
+            nodeRect.bottom - offsetY
+        }
+
+        windowGravity = when {
+            alignment == "right" && position == "above" -> Gravity.BOTTOM or Gravity.RIGHT
+            alignment == "right" && position == "below" -> Gravity.TOP or Gravity.RIGHT
+            alignment == "left" && position == "above" -> Gravity.BOTTOM or Gravity.LEFT
+            else -> Gravity.TOP or Gravity.LEFT
         }
     }
 
