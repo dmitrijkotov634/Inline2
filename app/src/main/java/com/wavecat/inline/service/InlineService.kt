@@ -126,6 +126,19 @@ class InlineService : AccessibilityService() {
         loadModules()
     }
 
+    fun forceLoadLazy() = globals?.apply {
+        runCatching {
+            loadModules(
+                service = this@InlineService,
+                sharedPreferences = defaultSharedPreferences,
+                defaultPath = defaultPath,
+                forceLazy = true
+            )
+        }.onFailure { e ->
+            notifyException("forceLoadLazy(): ${e.message}")
+        }
+    }
+
     fun loadModules() = globals?.apply {
         allCommands.clear()
         allWatchers.clear()
@@ -141,7 +154,7 @@ class InlineService : AccessibilityService() {
             loadModules(
                 service = this@InlineService,
                 sharedPreferences = defaultSharedPreferences,
-                defaultPath = defaultPath
+                defaultPath = defaultPath,
             )
         }.onFailure { e ->
             notifyException("loadModules(): ${e.message}")

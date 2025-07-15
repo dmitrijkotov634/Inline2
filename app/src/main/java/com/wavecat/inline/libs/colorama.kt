@@ -22,6 +22,27 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
 
 class colorama : TwoArgFunction() {
+    companion object {
+        private const val DISABLE_HTML_PREF = "disable_html"
+
+        private val service by lazy { requireService() }
+
+        val clipboardManager: ClipboardManager by lazy {
+            service.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        }
+
+        private val availability by lazy {
+            !service.defaultSharedPreferences.getBoolean(DISABLE_HTML_PREF, false)
+        }
+
+        fun formatHtml(reply: String) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Html.fromHtml(reply, Html.FROM_HTML_MODE_LEGACY)
+        } else {
+            @Suppress("DEPRECATION")
+            Html.fromHtml(reply)
+        }.toString()
+    }
+
     override fun call(name: LuaValue, env: LuaValue): LuaValue {
         val library: LuaValue = tableOf()
 
@@ -143,24 +164,5 @@ class colorama : TwoArgFunction() {
         override fun toString(): String {
             return "ColoramaQuery{currentText=$currentText, expression=$expression, args=$args, text=$text, startExp=$startExp, endExp=$endExp}"
         }
-    }
-
-    companion object {
-        private const val DISABLE_HTML_PREF = "disable_html"
-
-        private val service = requireService()
-
-        val clipboardManager: ClipboardManager by lazy {
-            service.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        }
-
-        private var availability = !service.defaultSharedPreferences.getBoolean(DISABLE_HTML_PREF, false)
-
-        fun formatHtml(reply: String) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            Html.fromHtml(reply, Html.FROM_HTML_MODE_LEGACY)
-        } else {
-            @Suppress("DEPRECATION")
-            Html.fromHtml(reply)
-        }.toString()
     }
 }

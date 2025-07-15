@@ -218,10 +218,7 @@ class MainViewModel(
     fun loadAll() {
         if (allLoaded) return
 
-        InlineService.instance?.apply {
-            lazyLoadSharedPreferences.edit { clear() }
-            loadModules()
-        }
+        InlineService.instance?.forceLoadLazy()
 
         changesApplied = true
         allLoaded = true

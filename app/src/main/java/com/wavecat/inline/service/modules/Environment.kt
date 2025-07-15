@@ -20,33 +20,47 @@ fun Globals.loadModules(
     service: InlineService,
     sharedPreferences: SharedPreferences,
     defaultPath: Set<String>,
+    forceLazy: Boolean = false,
 ) {
     val unloaded = sharedPreferences.getStringSet(UNLOADED, defaultUnloaded) ?: defaultUnloaded
     val lazyPrefs = service.lazyLoadSharedPreferences
 
-    loadInternalModules(service, lazyPrefs, unloaded)
-    loadExternalModules(service, sharedPreferences, unloaded, defaultPath, lazyPrefs)
+    loadInternalModules(service = service, lazyPrefs = lazyPrefs, unloaded = unloaded, forceLazy = forceLazy)
+
+    loadExternalModules(
+        service = service,
+        sharedPreferences = sharedPreferences,
+        unloaded = unloaded,
+        defaultPath = defaultPath,
+        lazyPrefs = lazyPrefs,
+        forceLazy = forceLazy
+    )
 }
 
 fun Globals.loadInternalModules(
     service: InlineService,
     lazyPrefs: SharedPreferences,
     unloaded: Set<String>,
+    forceLazy: Boolean = false,
 ) {
     service.assets.list(DEFAULT_ASSETS_PATH)?.forEach { fileName ->
         if (fileName !in unloaded) {
             val path = "$DEFAULT_ASSETS_PATH/$fileName"
             val lazyCommands = lazyPrefs.getStringSet(fileName, emptySet())!!
 
-            loadModuleByStrategy(
-                isLazy = lazyCommands.isNotEmpty(),
-                service = service,
-                lazyCommands = lazyCommands,
-                lazyPrefs = lazyPrefs,
-                path = fileName,
-                isInternal = true
-            ) {
-                service.assets.open(path).readScript()
+            if (forceLazy && lazyCommands.isEmpty()) {
+                Log.d(TAG, "Skip loaded module: $path")
+            } else {
+                loadModuleByStrategy(
+                    isLazy = !(lazyCommands.isEmpty() || forceLazy),
+                    service = service,
+                    lazyCommands = lazyCommands,
+                    lazyPrefs = lazyPrefs,
+                    path = fileName,
+                    isInternal = true
+                ) {
+                    service.assets.open(path).readScript()
+                }
             }
         }
     }
@@ -58,6 +72,7 @@ fun Globals.loadExternalModules(
     unloaded: Set<String>,
     defaultPath: Set<String>,
     lazyPrefs: SharedPreferences,
+    forceLazy: Boolean = false,
 ) {
     val paths = sharedPreferences.getStringSet(PATH, defaultPath) ?: return
 
@@ -66,15 +81,19 @@ fun Globals.loadExternalModules(
             val path = file.absolutePath
             val lazyCommands = lazyPrefs.getStringSet(path, emptySet())!!
 
-            loadModuleByStrategy(
-                isLazy = lazyCommands.isNotEmpty(),
-                service = service,
-                lazyCommands = lazyCommands,
-                lazyPrefs = lazyPrefs,
-                path = path,
-                isInternal = false
-            ) {
-                file.readScript()
+            if (forceLazy && lazyCommands.isEmpty()) {
+                Log.d(TAG, "Skip loaded module: $path")
+            } else {
+                loadModuleByStrategy(
+                    isLazy = !(lazyCommands.isEmpty() || forceLazy),
+                    service = service,
+                    lazyCommands = lazyCommands,
+                    lazyPrefs = lazyPrefs,
+                    path = path,
+                    isInternal = false
+                ) {
+                    file.readScript()
+                }
             }
         }
     }

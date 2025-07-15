@@ -22,9 +22,9 @@ class utf8 : TwoArgFunction() {
             valueOf(str.substring(startIndex, endIndex))
         }
 
-        library["char"] = varArgFunction {
+        library["char"] = varArgFunction { ints ->
             valueOf(buildString {
-                it.forEachVararg {
+                ints.forEachVararg {
                     append(it.checkint())
                 }
             })

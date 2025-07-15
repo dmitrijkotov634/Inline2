@@ -1,6 +1,5 @@
 require "iutf8"
 require "utils"
-require "windows"
 
 local function replace(input, query, args)
     inline:setText(input, query:replaceExpression(""):gsub(utils.escape(args[1]), args[2]))

@@ -7,6 +7,7 @@ import com.wavecat.inline.extensions.varArgFunction
 import com.wavecat.inline.preferences.views.Button
 import com.wavecat.inline.preferences.views.CheckBox
 import com.wavecat.inline.preferences.views.Column
+import com.wavecat.inline.preferences.views.HScrollView
 import com.wavecat.inline.preferences.views.Row
 import com.wavecat.inline.preferences.views.SeekBar
 import com.wavecat.inline.preferences.views.SmallButton
@@ -14,6 +15,7 @@ import com.wavecat.inline.preferences.views.Spacer
 import com.wavecat.inline.preferences.views.Spinner
 import com.wavecat.inline.preferences.views.Text
 import com.wavecat.inline.preferences.views.TextInput
+import com.wavecat.inline.preferences.views.VScrollView
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaTable.CALL
 import org.luaj.vm2.LuaValue.varargsOf
@@ -43,6 +45,8 @@ class Builder(context: Context) : LuaTable() {
         set("button", withContext(context, Button::class.java))
         set("spacer", withContext(context, Spacer::class.java))
         set("smallButton", withContext(context, SmallButton::class.java))
+        set("vscroll", withContext(context, VScrollView::class.java))
+        set("hscroll", withContext(context, HScrollView::class.java))
 
         // Listeners
 
