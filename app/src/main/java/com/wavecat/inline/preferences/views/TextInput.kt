@@ -20,6 +20,13 @@ import okhttp3.internal.toLongOrDefault
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
+/**
+ * A custom TextInput view that extends TextInputLayout and implements the Preference interface.
+ * This view can be used in module settings and floating windows.
+ * It supports saving its state to SharedPreferences and allows for custom listeners and input types.
+ *
+ * @param context The context in which the view is created.
+ */
 @SuppressLint("ViewConstructor")
 class TextInput(context: Context) : TextInputLayout(context), Preference {
     var sharedKey: String? = null

@@ -11,6 +11,12 @@ import com.wavecat.inline.preferences.Preference
 import com.wavecat.inline.preferences.castPreference
 import org.luaj.vm2.LuaValue
 
+/**
+ * A vertical scroll view that can be used as a preference.
+ *
+ * @param context The context to use.
+ * @param view The LuaValue representing the view to display in the scroll view.
+ */
 @SuppressLint("ViewConstructor")
 open class VScrollView(context: Context, private val view: LuaValue) : ScrollView(context), Preference {
     override fun getView(preferences: SharedPreferences?, requestFocus: () -> Unit): View {
@@ -28,6 +34,12 @@ open class VScrollView(context: Context, private val view: LuaValue) : ScrollVie
     }
 }
 
+/**
+ * A horizontal scroll view that can be used in preferences.
+ *
+ * @param context The context to use.
+ * @param view The view to display in the scroll view.
+ */
 @SuppressLint("ViewConstructor")
 open class HScrollView(context: Context, private val view: LuaValue) : HorizontalScrollView(context),
     Preference {

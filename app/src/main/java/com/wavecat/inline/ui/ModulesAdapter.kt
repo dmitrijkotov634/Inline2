@@ -8,6 +8,16 @@ import com.wavecat.inline.R
 import com.wavecat.inline.databinding.ModuleItemBinding
 import java.util.Locale
 
+/**
+ * Adapter for displaying a list of modules in a RecyclerView.
+ *
+ * This adapter handles both external and internal modules, displaying their names, descriptions,
+ * and appropriate action buttons (e.g., download/remove for external, enable/disable for internal).
+ *
+ * @param modules The initial list of [ModuleItem]s to display. This list can be updated later.
+ * @param onClick A lambda function that will be invoked when an action button for a module is clicked.
+ *                It receives the clicked [ModuleItem] as a parameter.
+ */
 class ModulesAdapter(
     var modules: List<ModuleItem> = listOf(),
     private val onClick: (ModuleItem) -> Unit,

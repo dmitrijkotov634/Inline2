@@ -21,6 +21,24 @@ import org.luaj.vm2.LuaTable.CALL
 import org.luaj.vm2.LuaValue.varargsOf
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
+/**
+ * Creates a LuaTable that acts as a constructor for a given Java class,
+ * automatically providing a Context instance as the first argument to the constructor.
+ *
+ * This is useful for creating Lua-accessible constructors for Android views
+ * or other classes that require a Context.
+ *
+ * When the returned LuaTable is called as a function from Lua, it will:
+ * 1. Coerce the provided `klass` (Java class) to a LuaValue.
+ * 2. Access the "new" method of that coerced class (which corresponds to its constructor).
+ * 3. Invoke this "new" method, passing the `context` (coerced to LuaValue)
+ *    as the first argument, followed by any arguments passed from the Lua call.
+ *
+ * @param context The Android Context to be passed to the constructor.
+ * @param klass The Java Class for which to create a Lua-callable constructor.
+ * @return A LuaTable that, when called, constructs an instance of `klass`
+ *         with the provided `context`.
+ */
 fun withContext(context: Context, klass: Class<*>): LuaTable =
     LuaTable().apply {
         val meta = LuaTable()
@@ -33,6 +51,19 @@ fun withContext(context: Context, klass: Class<*>): LuaTable =
         setmetatable(meta)
     }
 
+/**
+ * A LuaTable that provides access to UI components and event listeners for building user interfaces.
+ *
+ * This class is designed to be used within a Lua environment to create and manage Android UI elements.
+ * It pre-populates itself with common UI components (like Text, CheckBox, Button, etc.) and
+ * functions to set click listeners.
+ *
+ * The UI components are made available as callable Lua tables. When called, they create
+ * new instances of the respective Android View, passing the provided `context` and any
+ * additional arguments from the Lua call to the View's constructor.
+ *
+ * @param context The Android [Context] required for creating View instances.
+ */
 class Builder(context: Context) : LuaTable() {
     init {
         set("text", withContext(context, Text::class.java))

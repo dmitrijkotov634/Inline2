@@ -11,6 +11,18 @@ import com.wavecat.inline.utils.dp
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
+/**
+ * Compact button implementation for preferences with minimal styling.
+ *
+ * Extends MaterialButton with a borderless style and reduced dimensions
+ * for use in preference screens where space-efficient buttons are needed.
+ * Provides Lua scripting support for click handling while maintaining
+ * a minimal visual footprint.
+ *
+ * @see MaterialButton
+ * @see Preference
+ * @see LuaValue
+ */
 class SmallButton : MaterialButton, Preference {
     constructor(context: Context, text: String, listener: LuaValue) : super(
         context,

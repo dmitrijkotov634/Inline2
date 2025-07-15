@@ -30,9 +30,40 @@ import org.luaj.vm2.LuaValue.valueOf
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
 
+/**
+ * Represents a floating window that can be displayed on top of other applications.
+ * This class provides functionality to create, configure, and manage a floating window
+ * that can contain various preference items.
+ *
+ * The window's appearance and behavior can be customized, including:
+ * - **Appearance:** Corner radius, padding, background color.
+ * - **Positioning:** Initial X/Y coordinates, gravity.
+ * - **Behavior:** Autofocus, ability to move by touch, layout limits, background visibility.
+ *
+ * It integrates with Lua scripting for defining the content and behavior of the window.
+ *
+ * @property context The application context.
+ * @property sharedPreferences The [SharedPreferences] instance used to store and retrieve preference values.
+ * Defaults to the service's default SharedPreferences.
+ * @property cornerRadius The radius of the window's corners in dp. Default is 16.
+ * @property padding An array of integers representing the padding for left, top, right, and bottom in dp.
+ * Default is `intArrayOf(16, 16, 16, 16)`.
+ * @property backgroundColor The background color of the window. Defaults to the window background color
+ * defined in the current theme, or [Color.WHITE] if not found.
+ * @property positionX The initial X position of the window on the screen. Default is 0.
+ * @property positionY The initial Y position of the window on the screen. Default is 0.
+ * @property windowGravity The gravity of the window, determining its initial placement.
+ * See [android.view.Gravity]. Default is [Gravity.CENTER].
+ * @property autoFocus If true, the window will attempt to gain focus when interacted with and lose focus
+ * when touched outside. Default is true.
+ * @property noLimits If true, the window layout will not be constrained by screen edges.
+ * See [WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS]. Default is false.
+ * @property noBackground If true, the window will not have a background drawable. Default is false.
+ * @property allowTouchMove If true, the window can be moved by dragging it. Default is true.
+ * @property mWindowManager The [WindowManager] service instance.
+ */
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP_MR1)
 class FloatingWindow(private val context: Context) {
-
     var sharedPreferences = requireService().defaultSharedPreferences
     var cornerRadius = 16
     var padding = intArrayOf(16, 16, 16, 16)
@@ -73,6 +104,23 @@ class FloatingWindow(private val context: Context) {
         set("onClose", zeroArgFunction { LuaValue.NIL })
     }
 
+    /**
+     * Aligns the floating window relative to an [AccessibilityNodeInfo].
+     * This function calculates the `positionX`, `positionY`, and `windowGravity`
+     * of the floating window based on the bounds of the provided node and
+     * configuration options.
+     *
+     * The configuration options are read from a Lua table (`config`) and include:
+     * - `offsetX`: (Integer, optional, default: 0) Horizontal offset in dp from the node's edge.
+     * - `offsetY`: (Integer, optional, default: 0) Vertical offset in dp from the node's edge.
+     * - `alignment`: (String, optional, default: "left") Horizontal alignment relative to the node.
+     *   Can be "left" or "right".
+     * - `position`: (String, optional, default: "above") Vertical position relative to the node.
+     *   Can be "above" or "below".
+     *
+     * @param accessibilityNodeInfo The [AccessibilityNodeInfo] to align to.
+     * @param config A [LuaValue] (table) containing alignment and offset configurations.
+     */
     @SuppressLint("RtlHardcoded")
     fun alignToNode(accessibilityNodeInfo: AccessibilityNodeInfo, config: LuaValue) {
         val nodeRect = Rect().apply { accessibilityNodeInfo.getBoundsInScreen(this) }

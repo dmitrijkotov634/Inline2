@@ -8,6 +8,14 @@ import android.widget.LinearLayout
 import com.wavecat.inline.preferences.Preference
 import com.wavecat.inline.utils.dp
 
+/**
+ * A custom view that acts as a spacer in a layout.
+ * It can be used to add padding between other views.
+ * The spacer can be either horizontal or vertical, depending on the orientation of its parent LinearLayout.
+ *
+ * @param context The context in which the spacer is created.
+ * @param padding The amount of padding to add, in dp.
+ */
 @SuppressLint("ViewConstructor")
 open class Spacer(context: Context, private val padding: Int) : View(context), Preference {
 
