@@ -16,6 +16,18 @@ import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
+/**
+ * Custom spinner implementation for preferences with Lua scripting support.
+ *
+ * Extends AppCompatSpinner to provide integration with SharedPreferences
+ * for persistent selection storage and Lua callback functionality for
+ * selection changes. Supports dynamic choice lists defined via Lua tables.
+ *
+ * @see AppCompatSpinner
+ * @see Preference
+ * @see SharedPreferences
+ * @see LuaTable
+ */
 @SuppressLint("ViewConstructor")
 class Spinner(context: Context?, set: LuaTable) : AppCompatSpinner(context!!), Preference {
     var sharedKey: String? = null

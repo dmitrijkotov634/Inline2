@@ -12,6 +12,19 @@ import com.wavecat.inline.preferences.Preference
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
+/**
+ * Custom seek bar implementation for preferences with Lua scripting support.
+ *
+ * Extends AppCompatSeekBar to provide integration with SharedPreferences
+ * for persistent storage and Lua callback functionality for progress tracking.
+ * Supports both preference-backed and listener-based seek bar configurations
+ * with separate callbacks for progress changes and tracking completion.
+ *
+ * @see AppCompatSeekBar
+ * @see Preference
+ * @see SharedPreferences
+ * @see OnSeekBarChangeListener
+ */
 @SuppressLint("ViewConstructor")
 class SeekBar : AppCompatSeekBar, Preference {
     var sharedKey: String? = null

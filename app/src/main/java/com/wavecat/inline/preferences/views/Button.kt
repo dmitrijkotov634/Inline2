@@ -11,6 +11,18 @@ import com.wavecat.inline.preferences.Preference
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
+
+/**
+ * Custom button implementation for preferences with Lua scripting support.
+ *
+ * Extends MaterialButton to provide integration with the preferences system
+ * and Lua callback functionality for dynamic behavior. Designed for use
+ * in preference screens where buttons trigger Lua-defined actions.
+ *
+ * @see MaterialButton
+ * @see Preference
+ * @see LuaValue
+ */
 @SuppressLint("ViewConstructor")
 class Button : MaterialButton, Preference {
     constructor(context: Context, text: String, listener: LuaValue) : super(context) {

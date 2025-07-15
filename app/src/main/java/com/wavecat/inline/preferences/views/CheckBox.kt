@@ -14,8 +14,21 @@ import com.wavecat.inline.utils.dp
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
+
+/**
+ * Custom checkbox implementation for preferences with Lua scripting support.
+ *
+ * Extends MaterialCheckBox to provide integration with SharedPreferences
+ * for persistent storage and Lua callback functionality for dynamic behavior.
+ * Supports both preference-backed and listener-based checkbox configurations.
+ *
+ * @see MaterialCheckBox
+ * @see Preference
+ * @see SharedPreferences
+ */
 @SuppressLint("ViewConstructor")
 class CheckBox : MaterialCheckBox, Preference {
+
     var sharedKey: String? = null
         private set
 

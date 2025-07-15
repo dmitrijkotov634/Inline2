@@ -14,6 +14,16 @@ import com.wavecat.inline.service.InlineService.Companion.requireService
 import org.luaj.vm2.lib.VarArgFunction.NIL
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
+/**
+ * Represents a dialog for managing preferences.
+ *
+ * This class provides functionality to create and display a dialog
+ * that allows users to interact with and modify modules preferences.
+ * It integrates with Lua scripting for defining preference items and their behavior.
+ *
+ * @param context The context in which the dialog will be displayed.
+ * @param onCancelListener A lambda function to be invoked when the dialog is canceled.
+ */
 class PreferencesDialog(
     private val context: Context,
     private val onCancelListener: () -> Unit,
