@@ -4,15 +4,7 @@ local function createUiMenu(ui)
     end
 
     return {
-        ui.button("Button", callback),
-        ui.smallButton("SmallButton", callback),
-        ui.checkBox("CheckBox"),
-        ui.seekBar(callback, 20),
-        ui.spinner({ "Spinner", "Spinner", "Spinner" }, callback),
-        ui.text("Text"),
-        ui.textInput("TextInput", callback),
-        "In Horizontal:",
-        {
+        ui.vscroll({
             ui.button("Button", callback),
             ui.smallButton("SmallButton", callback),
             ui.checkBox("CheckBox"),
@@ -20,7 +12,17 @@ local function createUiMenu(ui)
             ui.spinner({ "Spinner", "Spinner", "Spinner" }, callback),
             ui.text("Text"),
             ui.textInput("TextInput", callback),
-        }
+        }),
+        "In Horizontal:",
+        ui.hscroll({
+            ui.button("Button", callback),
+            ui.smallButton("SmallButton", callback),
+            ui.checkBox("CheckBox"),
+            ui.seekBar(callback, 20),
+            ui.spinner({ "Spinner", "Spinner", "Spinner" }, callback),
+            ui.text("Text"),
+            ui.textInput("TextInput", callback),
+        })
     }
 end
 

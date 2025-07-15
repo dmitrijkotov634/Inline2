@@ -92,4 +92,5 @@ return function(module)
     module:registerCommand("exec", utils.hasArgs(exec), "Executes lua code")
     module:registerPreferences(getPreferences)
     env._module = module
+    module:saveLazyLoad()
 end
