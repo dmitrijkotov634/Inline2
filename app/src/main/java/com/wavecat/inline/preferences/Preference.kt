@@ -9,9 +9,6 @@ import android.view.View
  * Defines the contract for creating preference views that can interact
  * with SharedPreferences for data persistence and support focus management.
  * Implemented by all preference UI components like buttons, checkboxes, etc.
- *
- * @see SharedPreferences
- * @see View
  */
 interface Preference {
 
@@ -23,9 +20,8 @@ interface Preference {
      * persistence and callbacks.
      *
      * @param preferences SharedPreferences instance for reading/writing values, may be null
-     * @param requestFocus Callback function to request focus on this preference
+     * @param requestFocus Callback function to request focus on floating window
      * @return View The configured preference view ready for display
-     * @see SharedPreferences
      */
     fun getView(preferences: SharedPreferences?, requestFocus: () -> Unit): View
 }
