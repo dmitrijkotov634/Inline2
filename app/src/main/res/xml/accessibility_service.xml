@@ -6,4 +6,4 @@
     android:canRetrieveWindowContent="true"
     android:description="@string/description"
     android:notificationTimeout="0"
-    android:settingsActivity="com.wavecat.inline.MainActivity" />
+    android:settingsActivity="com.wavecat.inline.ui.MainActivity" />

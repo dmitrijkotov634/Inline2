@@ -2,7 +2,6 @@ package com.wavecat.inline.ui
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -23,7 +22,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.google.android.material.color.DynamicColors
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.wavecat.inline.R
 import com.wavecat.inline.databinding.ActivityMainBinding
 import com.wavecat.inline.preferences.PreferencesDialog
@@ -62,27 +60,37 @@ class MainActivity : AppCompatActivity() {
 
         binding.modules.addItemDecoration(itemDecoration)
 
-        val adapter = ModulesAdapter() { module ->
-            when (module) {
-                is ModuleItem.Internal -> {
-                    if (module.isLoaded) {
-                        model.disableModule(module)
-                    } else {
-                        model.enableModule(module)
+        val adapter = ModulesAdapter(
+            onClick = { module ->
+                when (module) {
+                    is ModuleItem.Internal -> {
+                        if (module.isLoaded) {
+                            model.disableModule(module)
+                        } else {
+                            model.enableModule(module)
+                        }
+
+                        model.loadModulesIfEfficient()
                     }
 
-                    model.loadModulesIfEfficient()
-                }
-
-                is ModuleItem.External -> {
-                    if (module.isInstalled) {
-                        model.removeModule(module)
-                    } else {
-                        model.downloadModule(module)
+                    is ModuleItem.External -> {
+                        if (module.isInstalled) {
+                            model.removeModule(module)
+                        } else {
+                            model.downloadModule(module)
+                        }
                     }
                 }
+            },
+            onSettingsClick = { module ->
+                openModulePreferences(
+                    when (module) {
+                        is ModuleItem.Internal -> module.name
+                        is ModuleItem.External -> module.name
+                    }
+                )
             }
-        }
+        )
 
         binding.modules.adapter = adapter
 
@@ -128,23 +136,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onResume() {
-        invalidateOptionsMenu()
         super.onResume()
+        invalidateOptionsMenu()
+        if (instance != null) {
+            model.loadAll()
+            model.refreshPreferencesFlags()
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu, menu)
-
-        if (instance == null || instance!!.allPreferences.isEmpty())
-            menu.removeItem(R.id.preferences)
-
         return super.onCreateOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.storage_permission -> showExternalStorageSettings()
-            R.id.preferences -> showPreferencesDialog()
             R.id.turn_on -> openAccessibilitySettings()
             R.id.reload -> reload()
         }
@@ -160,25 +167,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun reload() = model.reload() ?: openAccessibilitySettings()
 
-    private fun showPreferencesDialog() {
-        requireService().apply {
-            model.loadAll()
+    private fun openModulePreferences(moduleName: String) {
+        val service = instance ?: return
+        model.loadAll()
+        model.refreshPreferencesFlags()
 
-            val items: Array<String?> = allPreferences.keys.toTypedArray()
+        val key = model.getPreferencesKey(moduleName) ?: return
+        val prefs = service.allPreferences[key] ?: return
 
-            MaterialAlertDialogBuilder(this@MainActivity)
-                .setTitle(R.string.preferences)
-                .setItems(items) { _: DialogInterface?, which: Int ->
-                    requireService().allPreferences[items[which]]?.let {
-                        PreferencesDialog(this@MainActivity) { invalidateOptionsMenu() }
-                            .create(items[which]!!, it)
-                    }
-                }
-                .setPositiveButton(android.R.string.ok) { dialog: DialogInterface, _: Int ->
-                    dialog.cancel()
-                }
-                .show()
-        }
+        PreferencesDialog(this) {}
+            .create(key, prefs)
     }
 
     private fun showExternalStorageSettings() {

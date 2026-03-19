@@ -26,7 +26,11 @@ local function eval(node, query)
     env._node = node
     env._query = query
 
-    local chunk = load("return " .. query:getArgs(), "eval", "bt", env)
+    local chunk, err = load("return " .. query:getArgs(), "eval", "bt", env)
+
+    if not chunk then
+        return query:answer(err)
+    end
 
     if preferences:getBoolean("executor_print_code", true) then
         query:answer(query:getArgs() .. " = " .. tostring(chunk()))
@@ -43,7 +47,11 @@ local function exec(node, query)
     env._node = node
     env._query = query
 
-    local chunk = load(query:getArgs(), "exec", "bt", env)
+    local chunk, err = load(query:getArgs(), "exec", "bt", env)
+
+    if not chunk then
+        return query:answer(err)
+    end
 
     local result = chunk()
     if result then
@@ -52,14 +60,14 @@ local function exec(node, query)
 end
 
 local function getPreferences(prefs)
-    local codePlayground = prefs.textInput("Code")
-    local codeResult = prefs.text("Result:")
+    local codePlayground = prefs.textInput "Code"
+    local codeResult = prefs.text "Result:"
 
     return {
         warningMessage,
         prefs.spacer(4),
-        prefs.checkBox("executor_warning", "Don't show warning"),
-        prefs.checkBox("executor_print_code", "Print code before eval")
+        prefs.switch("executor_warning", "Don't show warning"),
+        prefs.switch("executor_print_code", "Print code before eval")
              :setDefault(true),
         prefs.spacer(4),
         codePlayground,

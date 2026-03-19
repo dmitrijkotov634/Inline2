@@ -1,12 +1,12 @@
 require "colorama"
 require "windows"
 
-local ActivityManager = luajava.bindClass("android.app.ActivityManager")
+local ActivityManager = require "android.app.ActivityManager"
 
-local BuildConfig = luajava.bindClass("com.wavecat.inline.BuildConfig")
-local Build = luajava.bindClass("android.os.Build")
-local Typeface = luajava.bindClass("android.graphics.Typeface")
-local SystemClock = luajava.bindClass("android.os.SystemClock")
+local BuildConfig = require "com.wavecat.inline.BuildConfig"
+local Build = require "android.os.Build"
+local Typeface = require "android.graphics.Typeface"
+local SystemClock = require "android.os.SystemClock"
 
 local BYTES_TO_MB = 1048576
 
@@ -44,8 +44,27 @@ local function getMemoryInfo()
     return usedMemoryMB, totalMemoryMB
 end
 
+local function countLazyModules()
+    local loaded = inline:getLoadedModules()
+    local lazyAll = inline:getLazyLoadSharedPreferences():getAll()
+    local lazyCount = 0
+
+    local iter = lazyAll:entrySet():iterator()
+    while iter:hasNext() do
+        local entry = iter:next()
+        if type(entry:getValue()) == "userdata" and not loaded:containsKey(entry:getKey()) then
+            lazyCount = lazyCount + 1
+        end
+    end
+
+    return loaded:size(), lazyCount
+end
+
 local function fetch(_, query)
     local usedMemoryMB, totalMemoryMB = getMemoryInfo()
+    local loadedCount, lazyCount = countLazyModules()
+    local totalModules = loadedCount + lazyCount
+
     query:answer(
         colorama.text(
             colorama.newline,
@@ -54,6 +73,7 @@ local function fetch(_, query)
             colorama.bold("------------------------------------"),
             colorama.bold("• Device: ") .. Build.MODEL .. " (" .. Build.BRAND .. ")",
             colorama.bold("• RAM: ") .. usedMemoryMB .. " MB / " .. totalMemoryMB .. " MB",
+            colorama.bold("• Modules: ") .. totalModules .. " (" .. loadedCount .. " loaded)",
             colorama.bold("• Commands: ") .. inline:getAllCommands():size(),
             colorama.bold("• Watchers: ") .. inline:getAllWatchers():size(),
             "t.me/inline_android"
@@ -78,9 +98,9 @@ local function flogo(_, query)
         local title = ui.text("Inline " .. BuildConfig.VERSION_NAME .. " on Android " .. Build.VERSION.RELEASE)
         local text = ui.text(logo)
 
-        local time = ui.text("")
-        local info = ui.text("")
-        local uptime = ui.text("")
+        local time = ui.text ""
+        local info = ui.text ""
+        local uptime = ui.text ""
 
         local timerTask = inline:timerTask(function()
             local usedMemoryMB, totalMemoryMB = getMemoryInfo()
@@ -150,7 +170,7 @@ local function fclock(_, query)
             ui.close()
         end)
 
-        time = ui.text("")
+        time = ui.text ""
 
         timer:schedule(timerTask, 0, 1000)
 

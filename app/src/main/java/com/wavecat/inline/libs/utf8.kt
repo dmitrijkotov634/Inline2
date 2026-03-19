@@ -78,7 +78,7 @@ class utf8 : TwoArgFunction() {
         library["char"] = varArgFunction { ints ->
             valueOf(buildString {
                 ints.forEachVararg {
-                    append(it.checkint())
+                    append(it.checkint().toChar())
                 }
             })
         }

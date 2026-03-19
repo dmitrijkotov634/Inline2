@@ -11,16 +11,14 @@ import java.util.Locale
 /**
  * Adapter for displaying a list of modules in a RecyclerView.
  *
- * This adapter handles both external and internal modules, displaying their names, descriptions,
- * and appropriate action buttons (e.g., download/remove for external, enable/disable for internal).
- *
- * @param modules The initial list of [ModuleItem]s to display. This list can be updated later.
- * @param onClick A lambda function that will be invoked when an action button for a module is clicked.
- *                It receives the clicked [ModuleItem] as a parameter.
+ * @param modules The initial list of [ModuleItem]s to display.
+ * @param onClick A lambda invoked when an action button for a module is clicked.
+ * @param onSettingsClick A lambda invoked when the settings icon is clicked for an internal module.
  */
 class ModulesAdapter(
     var modules: List<ModuleItem> = listOf(),
     private val onClick: (ModuleItem) -> Unit,
+    private val onSettingsClick: (ModuleItem) -> Unit = {},
 ) : RecyclerView.Adapter<ModulesAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -54,6 +52,13 @@ class ModulesAdapter(
 
                     moduleActionNegative.text = text
                     moduleActionPositive.text = text
+
+                    moduleSettings.visibility =
+                        if (item.isInstalled && item.hasPreferences) View.VISIBLE else View.GONE
+
+                    moduleSettings.setOnClickListener {
+                        onSettingsClick(item)
+                    }
                 }
 
                 is ModuleItem.Internal -> {
@@ -68,6 +73,13 @@ class ModulesAdapter(
 
                     moduleActionNegative.text = text
                     moduleActionPositive.text = text
+
+                    moduleSettings.visibility =
+                        if (item.isLoaded && item.hasPreferences) View.VISIBLE else View.GONE
+
+                    moduleSettings.setOnClickListener {
+                        onSettingsClick(item)
+                    }
                 }
             }
 

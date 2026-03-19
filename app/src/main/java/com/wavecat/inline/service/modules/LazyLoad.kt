@@ -33,6 +33,8 @@ fun loadLazyStubs(
     allCommands: MutableMap<String, Command>,
     commands: Set<String>,
     lazyPrefs: SharedPreferences,
+    loadedModules: MutableMap<String, Module>,
+    modulePath: String,
     load: () -> Unit,
 ) {
     commands.forEach { name ->
@@ -43,7 +45,9 @@ fun loadLazyStubs(
             category = category,
             description = description,
             callable = varArgFunction { args ->
-                load()
+                if (modulePath !in loadedModules) {
+                    load()
+                }
                 allCommands[name]?.callable?.invoke(args) ?: LuaValue.NIL
             }
         )

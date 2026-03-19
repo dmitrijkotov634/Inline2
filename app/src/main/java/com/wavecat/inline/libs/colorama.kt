@@ -39,23 +39,14 @@ class colorama : TwoArgFunction() {
         private const val DISABLE_HTML_PREF = "disable_html"
 
         /**
-         * Lazy-initialized reference to the Inline service.
-         *
-         * @see com.wavecat.inline.service.InlineService
-         */
-        private val service by lazy { requireService() }
-
-        /**
          * System clipboard manager for HTML content operations.
          *
-         * Used to copy formatted HTML content to clipboard for
-         * pasting into text fields with formatting preservation.
+         * Uses the current service instance to avoid holding a stale reference.
          *
          * @see ClipboardManager
          */
-        val clipboardManager: ClipboardManager by lazy {
-            service.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        }
+        val clipboardManager: ClipboardManager
+            get() = requireService().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
         /**
          * Flag indicating whether HTML formatting is available.
@@ -63,9 +54,8 @@ class colorama : TwoArgFunction() {
          * Determined by user preferences - when disabled, only
          * plain text formatting is used.
          */
-        private val availability by lazy {
-            !service.defaultSharedPreferences.getBoolean(DISABLE_HTML_PREF, false)
-        }
+        val availability: Boolean
+            get() = !requireService().defaultSharedPreferences.getBoolean(DISABLE_HTML_PREF, false)
 
         /**
          * Converts HTML string to plain text using Android's Html parser.

@@ -188,6 +188,8 @@ class Module(
                 preferences.value.remove(it)
             }
         }
+
+        service.loadedModules.remove(filepath)
     }
 
     /**
@@ -218,5 +220,17 @@ class Module(
         service.defaultSharedPreferences.edit {
             putString("DESC${filepath}", description)
         }
+    }
+
+    override fun toString(): String = buildString {
+        append("Module(")
+        append(if (isInternal) "internal" else "external")
+        append(", path=").append(filepath)
+        category?.let { append(", category=").append(it) }
+        if (mCommands.isNotEmpty()) append(", commands=").append(mCommands.keys)
+        if (mWatchers.isNotEmpty()) append(", watchers=").append(mWatchers.size)
+        if (mCommandFinders.isNotEmpty()) append(", finders=").append(mCommandFinders.size)
+        if (mPreferencesItems.isNotEmpty()) append(", preferences=").append(mPreferencesItems.size)
+        append(")")
     }
 }

@@ -5,15 +5,15 @@ require "windows"
 
 local DEFAULT_API_ENDPOINT = "https://api.openai.com/v1/chat/completions"
 
-local TimeUnit = luajava.bindClass "java.util.concurrent.TimeUnit"
+local TimeUnit = require "java.util.concurrent.TimeUnit"
 local preferences = inline:getDefaultSharedPreferences()
 
 local client = http(
-    http.newBuilder()
-        :readTimeout(60, TimeUnit.SECONDS)
-        :writeTimeout(60, TimeUnit.SECONDS)
-        :callTimeout(60, TimeUnit.SECONDS
-    )   :build()
+        http.newBuilder()
+            :readTimeout(60, TimeUnit.SECONDS)
+            :writeTimeout(60, TimeUnit.SECONDS)
+            :callTimeout(60, TimeUnit.SECONDS
+        )   :build()
 )
 
 local history = {}
@@ -81,7 +81,7 @@ end
 
 local function getPreferences(prefs)
     local historyRemove = prefs.text("Chat history is automatically deleted after "
-        .. preferences:getInt("openai_history_minutes", 5) .. " minutes")
+            .. preferences:getInt("openai_history_minutes", 5) .. " minutes")
 
     return {
         prefs.textInput("openai_key", "OpenAI Key")
@@ -89,7 +89,8 @@ local function getPreferences(prefs)
         prefs.spacer(8),
         historyRemove,
         prefs.spacer(8),
-        prefs.seekBar("openai_history_minutes", 30)
+        prefs.slider("openai_history_minutes", 30)
+             :useInt()
              :setDefault(5)
              :setOnProgressChanged(function(progress)
             historyRemove:setText("Chat history is automatically deleted after " .. progress .. " minutes")
@@ -97,7 +98,7 @@ local function getPreferences(prefs)
         prefs.spacer(8),
         "The OpenAI API is powered by a diverse set of models with different capabilities and price points.",
         prefs.spacer(8),
-        prefs.textInput("openai_model", "API Model"):setDefault("gpt-4o-mini"),
+        prefs.textInput("openai_model", "API Model"):setDefault "gpt-4o-mini",
         prefs.spacer(8),
         prefs.textInput("openai_url", "API Url"):setDefault(DEFAULT_API_ENDPOINT),
         prefs.spacer(8)
@@ -121,32 +122,32 @@ local function ask(string, onResult)
             messages = history
         }
     },
-        function(_, _, str)
-            local result = json.load(str)
+            function(_, _, str)
+                local result = json.load(str)
 
-            if result.choices then
-                local message = result.choices[1].message
+                if result.choices then
+                    local message = result.choices[1].message
 
-                onResult(message.content)
+                    onResult(message.content)
 
-                history[#history + 1] = {
-                    content = message.content,
-                    role = message.role
-                }
-            else
-                onResult(result.error.message)
+                    history[#history + 1] = {
+                        content = message.content,
+                        role = message.role
+                    }
+                else
+                    onResult(result.error.message)
+                end
+            end,
+            function(_, e)
+                onResult("Error: " .. e:getMessage())
             end
-        end,
-        function(_, e)
-            onResult("Error: " .. e:getMessage())
-        end
     )
 end
 
 local function getArgs(query)
     local args = query:getArgs()
     if args == "" then
-        args = query:replaceExpression("")
+        args = query:replaceExpression ""
     end
     return args
 end
@@ -154,21 +155,21 @@ end
 local function cask(_, query)
     local args = getArgs(query)
 
-    query:answer("Loading")
+    query:answer "Loading"
 
     ask(args, function(result)
         menu.create(
-            query,
-            {
-                result,
-                "\n",
+                query,
                 {
-                    caption = "[√]",
-                    action = function(_, q)
-                        q:answer(result)
-                    end
+                    result,
+                    "\n",
+                    {
+                        caption = "[√]",
+                        action = function(_, q)
+                            q:answer(result)
+                        end
+                    }
                 }
-            }
         )
     end)
 end
@@ -177,7 +178,7 @@ local function fask(input, query)
     local args = getArgs(query)
 
     windows.createAligned(input, { noLimits = true }, function(ui)
-        local text = ui.text("Loading...")
+        local text = ui.text "Loading..."
         text:setMaxLines(15)
 
         ask(args, function(result)
@@ -186,12 +187,14 @@ local function fask(input, query)
 
         local paste = ui.smallButton("Paste", function()
             if not windows.insertText(text:getText()) then
-                return inline:toast("Please focus on the desired input")
+                return inline:toast "Please focus on the desired input"
             end
         end)
 
+        paste:setEnabled(windows.isInsertAvailable())
+
         ui.onFocusChanged = function(isFocused)
-            paste:setEnabled(not isFocused)
+            paste:setEnabled(not isFocused and windows.isInsertAvailable())
         end
 
         return {
@@ -212,8 +215,8 @@ end
 
 local function fgpt(_, query)
     windows.create({ noLimits = true }, function(ui)
-        local input = ui.textInput("Input")
-        local text = ui.text("Empty history")
+        local input = ui.textInput "Input"
+        local text = ui.text "Empty history"
 
         input:getEditText():setMaxLines(5)
         text:setMaxLines(15)
@@ -223,7 +226,7 @@ local function fgpt(_, query)
         local askButton
 
         askButton = ui.smallButton("Ask", function()
-            text:setText("Loading...")
+            text:setText "Loading..."
             askButton:setEnabled(false)
             ask(input:getText(), function(result)
                 text:setText(result)
@@ -233,12 +236,14 @@ local function fgpt(_, query)
 
         local paste = ui.smallButton("Paste", function()
             if not windows.insertText(text:getText()) then
-                return inline:toast("Please focus on the desired input")
+                return inline:toast "Please focus on the desired input"
             end
         end)
 
+        paste:setEnabled(windows.isInsertAvailable())
+
         ui.onFocusChanged = function(isFocused)
-            paste:setEnabled(not isFocused)
+            paste:setEnabled(not isFocused and windows.isInsertAvailable())
         end
 
         if #history > 0 then
@@ -256,7 +261,7 @@ local function fgpt(_, query)
                 paste,
                 ui.spacer(8),
                 ui.smallButton("Clear CTX", function()
-                    text:setText("Empty history")
+                    text:setText "Empty history"
                     history = {}
                 end),
                 ui.spacer(8),

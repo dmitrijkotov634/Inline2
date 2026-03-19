@@ -1,11 +1,14 @@
 package com.wavecat.inline.preferences
 
-import android.app.Dialog
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import android.widget.FrameLayout
+import android.widget.Toast
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.wavecat.inline.databinding.PreferencesDialogBinding
 import com.wavecat.inline.extensions.forEach
 import com.wavecat.inline.extensions.varArgFunction
@@ -15,11 +18,7 @@ import org.luaj.vm2.lib.VarArgFunction.NIL
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
 /**
- * Represents a dialog for managing preferences.
- *
- * This class provides functionality to create and display a dialog
- * that allows users to interact with and modify modules preferences.
- * It integrates with Lua scripting for defining preference items and their behavior.
+ * A bottom sheet dialog for managing module preferences.
  *
  * @param context The context in which the dialog will be displayed.
  * @param onCancelListener A lambda function to be invoked when the dialog is canceled.
@@ -28,7 +27,7 @@ class PreferencesDialog(
     private val context: Context,
     private val onCancelListener: () -> Unit,
 ) {
-    private var dialog: Dialog? = null
+    private var dialog: BottomSheetDialog? = null
 
     private val builder = Builder(context = context).apply {
         set("cancel", zeroArgFunction {
@@ -60,24 +59,44 @@ class PreferencesDialog(
         val binding = PreferencesDialogBinding.inflate(LayoutInflater.from(context))
 
         for (preference in preferences) {
-            val preferencesList =
-                preference.builder.call(builder, CoerceJavaToLua.coerce(this)).checktable()
+            try {
+                val preferencesList =
+                    preference.builder.call(builder, CoerceJavaToLua.coerce(this)).checktable()
 
-            preferencesList.forEach { _, value ->
-                val view = castPreference(context, value).getView(preference.sharedPreferences) {}
+                preferencesList.forEach { _, value ->
+                    val view = castPreference(context, value).getView(preference.sharedPreferences) {}
 
-                if (view.parent != null)
-                    (view.parent as ViewGroup).removeView(view)
+                    if (view.parent != null)
+                        (view.parent as ViewGroup).removeView(view)
 
-                binding.preferences.addView(view)
+                    binding.preferences.addView(view)
+                }
+            } catch (e: Exception) {
+                Log.e("PreferencesDialog", "Error building preferences for $title", e)
+                Toast.makeText(context, "Error in preferences: ${e.message}", Toast.LENGTH_LONG).show()
             }
         }
 
-        dialog = MaterialAlertDialogBuilder(context).apply {
-            setTitle(title)
-            setView(binding.root)
+        dialog = BottomSheetDialog(context).apply {
+            setContentView(binding.root)
             setOnCancelListener { onCancelListener() }
+
+            setOnShowListener {
+                val bottomSheet = findViewById<FrameLayout>(
+                    com.google.android.material.R.id.design_bottom_sheet
+                )
+
+                bottomSheet?.let {
+                    val behavior = BottomSheetBehavior.from(it)
+                    behavior.state = BottomSheetBehavior.STATE_EXPANDED
+                    behavior.skipCollapsed = true
+                    behavior.isDraggable = true
+                }
+            }
+
+            behavior.isFitToContents = true
+
+            show()
         }
-            .show()
     }
 }

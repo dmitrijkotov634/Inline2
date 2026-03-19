@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.wavecat.inline.service.InlineService
 import com.wavecat.inline.service.InlineService.Companion.ENVIRONMENT_PERF
+import com.wavecat.inline.service.modules.Module
 import com.wavecat.inline.service.modules.UNLOADED
 import com.wavecat.inline.service.modules.defaultUnloaded
 import kotlinx.coroutines.Dispatchers
@@ -169,6 +170,8 @@ class MainViewModel(
      */
     private fun showInternals() {
         _modules.value = internalModuleItems
+        loadAll()
+        refreshPreferencesFlags()
     }
 
     /**
@@ -190,10 +193,11 @@ class MainViewModel(
                 }
 
                 val body = response.body
+                val installed = modulesPath.list()?.toSet().orEmpty()
 
                 val moduleList = body.byteStream().bufferedReader().useLines { lines ->
                     lines.drop(1)
-                        .mapNotNull { it.parseModuleLine() }
+                        .mapNotNull { it.parseModuleLine(installed) }
                         .toList()
                 }
 
@@ -207,6 +211,8 @@ class MainViewModel(
 
                 _modules.value = mergedModules
                 _errorMessage.value = null
+                loadAll()
+                refreshPreferencesFlags()
             }
         }
             .onFailure {
@@ -344,6 +350,7 @@ class MainViewModel(
 
         if (perfValue < 500) {
             InlineService.instance?.loadModules()
+            refreshPreferencesFlags()
         } else {
             changesApplied = false
         }
@@ -360,6 +367,7 @@ class MainViewModel(
         if (!changesApplied) {
             InlineService.instance?.loadModules()
             changesApplied = true
+            refreshPreferencesFlags()
         }
     }
 
@@ -384,11 +392,50 @@ class MainViewModel(
     fun loadAll() {
         if (allLoaded) return
 
-        InlineService.instance?.forceLoadLazy()
+        InlineService.instance?.forceLoadLazy() ?: return
 
         changesApplied = true
         allLoaded = true
     }
+
+    /**
+     * Refreshes the hasPreferences flag on internal module items
+     * based on the currently loaded modules in the service.
+     */
+    fun refreshPreferencesFlags() {
+        val service = InlineService.instance ?: return
+
+        updateModuleList { item ->
+            when (item) {
+                is ModuleItem.Internal -> {
+                    val module = service.loadedModules[item.name]
+                    val hasPref = module != null && module.mPreferencesItems.isNotEmpty()
+                    if (hasPref != item.hasPreferences) item.copy(hasPreferences = hasPref) else item
+                }
+
+                is ModuleItem.External -> {
+                    val module = findExternalModule(service, item.name)
+                    val hasPref = module != null && module.mPreferencesItems.isNotEmpty()
+                    if (hasPref != item.hasPreferences) item.copy(hasPreferences = hasPref) else item
+                }
+            }
+        }
+    }
+
+    /**
+     * Returns the preferences key (category) for a given module,
+     * so the preferences dialog can be opened directly.
+     */
+    fun getPreferencesKey(moduleName: String): String? {
+        val service = InlineService.instance ?: return null
+        val module = service.loadedModules[moduleName]
+            ?: findExternalModule(service, moduleName)
+            ?: return null
+        return module.category ?: module.filepath
+    }
+
+    private fun findExternalModule(service: InlineService, fileName: String): Module? =
+        service.loadedModules.entries.firstOrNull { it.key.endsWith("/$fileName") }?.value
 
     /**
      * Posts an error message to the error state flow.
@@ -408,8 +455,7 @@ class MainViewModel(
      * @receiver String The line to parse from index.tsv
      * @return ModuleItem.External? The parsed module item, or null if invalid
      */
-    private fun String.parseModuleLine(): ModuleItem? {
-        val installed = modulesPath.list()?.toSet().orEmpty()
+    private fun String.parseModuleLine(installed: Set<String>): ModuleItem? {
         val parts = split("\t", limit = 3)
         return if (parts.size == 2) {
             ModuleItem.External(

@@ -10,12 +10,14 @@ local function fnote(input, query)
         local inputText = ui.textInput(query:getArgs(), "Text")
         local pasteButton = ui.smallButton("Paste", function()
             if not windows.insertText(inputText:getText()) then
-                return inline:toast("Please focus on the desired input")
+                return inline:toast "Please focus on the desired input"
             end
         end)
 
+        pasteButton:setEnabled(windows.isInsertAvailable())
+
         ui.onFocusChanged = function(isFocused)
-            pasteButton:setEnabled(not isFocused)
+            pasteButton:setEnabled(not isFocused and windows.isInsertAvailable())
         end
 
         inputText:setText(query:replaceExpression(""))

@@ -145,10 +145,10 @@ class FloatingWindow(private val context: Context) {
             nodeRect.bottom - offsetY
         }
 
-        windowGravity = when {
-            alignment == "right" && position == "above" -> Gravity.BOTTOM or Gravity.RIGHT
-            alignment == "right" && position == "below" -> Gravity.TOP or Gravity.RIGHT
-            alignment == "left" && position == "above" -> Gravity.BOTTOM or Gravity.LEFT
+        windowGravity = when (alignment) {
+            "right" if position == "above" -> Gravity.BOTTOM or Gravity.RIGHT
+            "right" if position == "below" -> Gravity.TOP or Gravity.RIGHT
+            "left" if position == "above" -> Gravity.BOTTOM or Gravity.LEFT
             else -> Gravity.TOP or Gravity.LEFT
         }
     }

@@ -1,11 +1,13 @@
 package com.wavecat.inline.service.modules
 
+import com.wavecat.inline.extensions.oneArgFunction
 import org.luaj.vm2.Globals
 import org.luaj.vm2.LuaFunction
 import org.luaj.vm2.LuaValue
 import org.luaj.vm2.Varargs
 import org.luaj.vm2.lib.PackageLib
 import org.luaj.vm2.lib.VarArgFunction
+import org.luaj.vm2.lib.jse.JavaClass
 
 /**
  * A Lua searcher that attempts to load Lua modules as Java classes.
@@ -26,14 +28,30 @@ class LuaSearcher(private val globals: Globals) : VarArgFunction() {
         val classname = PackageLib.toClassname(name)
         return try {
             val clazz = Class.forName(classname)
-            val instance = clazz.getDeclaredConstructor().newInstance() as LuaValue
-            if (instance.isfunction()) (instance as LuaFunction).initupvalue1(globals)
-            varargsOf(instance, globals)
+            val instance = clazz.getDeclaredConstructor().newInstance()
+            if (instance is LuaValue) {
+                if (instance is LuaFunction) instance.initupvalue1(globals)
+                varargsOf(instance, globals)
+            } else {
+                bindJavaClass(clazz, name)
+            }
         } catch (_: ClassNotFoundException) {
-            valueOf("\n\tno class '$classname'")
+            tryBindJavaClass(name) ?: valueOf("\n\tno class '$classname'")
         } catch (e: Exception) {
-            valueOf("\n\tjava load failed on '$classname', $e")
+            tryBindJavaClass(name) ?: valueOf("\n\tjava load failed on '$classname', $e")
         }
+    }
+
+    private fun tryBindJavaClass(name: String): Varargs? =
+        try {
+            bindJavaClass(Class.forName(name), name)
+        } catch (_: ClassNotFoundException) {
+            null
+        }
+
+    private fun bindJavaClass(clazz: Class<*>, name: String): Varargs {
+        val loader = oneArgFunction { JavaClass.forClass(clazz) }
+        return varargsOf(loader, valueOf(name))
     }
 
     companion object {

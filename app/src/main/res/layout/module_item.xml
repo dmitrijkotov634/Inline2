@@ -14,7 +14,7 @@
         android:layout_marginEnd="8dp"
         android:textAppearance="@style/TextAppearance.Material3.TitleLarge"
         android:textStyle="bold"
-        app:layout_constraintEnd_toStartOf="@+id/module_action_positive"
+        app:layout_constraintEnd_toStartOf="@+id/module_settings"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -27,9 +27,23 @@
         android:layout_marginEnd="8dp"
         android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/module_action_positive"
+        app:layout_constraintEnd_toStartOf="@+id/module_settings"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/module_name" />
+
+    <ImageButton
+        android:id="@+id/module_settings"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_marginEnd="4dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/preferences"
+        android:src="@drawable/baseline_settings_24"
+        app:tint="?attr/colorOnSurface"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/module_description"
+        app:layout_constraintEnd_toStartOf="@+id/module_action_negative"
+        app:layout_constraintTop_toTopOf="@+id/module_name" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/module_action_negative"

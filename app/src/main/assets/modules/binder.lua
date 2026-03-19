@@ -5,13 +5,13 @@ require "colorama"
 local preferences = inline:getSharedPreferences "binder2"
 local enabled = inline:getDefaultSharedPreferences():getBoolean("binder", true)
 
-local Query = luajava.bindClass "com.wavecat.inline.service.commands.Query"
+local Query = require "com.wavecat.inline.service.commands.Query"
 
 local function bind(_, query)
     local args = utils.split(query:getArgs(), " ", 2)
 
     if #args < 2 then
-        return inline:toast("Invalid arguments")
+        return inline:toast "Invalid arguments"
     end
 
     local rawValue = args[2]
@@ -25,7 +25,7 @@ local function bind(_, query)
 
     local data = utils.split(cleanValue, " ", 2)
     if not inline:getAllCommands():containsKey(data[1]) then
-        return inline:toast("Command not found")
+        return inline:toast "Command not found"
     end
 
     preferences:edit():putString(key, args[2]):apply()
@@ -130,34 +130,36 @@ local function binds(_, query)
         table.insert(result, createUnbindMenuItem(query, entry:getKey(), binds))
         table.insert(result, " " .. entry:getKey() .. " -> " .. entry:getValue() .. "\n")
     end
-    menu.create(query, result)
+    menu.create(query, result, function(_, q)
+        q:answer()
+        enabled = true
+    end)
 end
 
 local function getPreferences(prefs)
     return {
-        prefs.checkBox("binder", "Enable binder"),
+        prefs.switch("binder", "Enable binder"),
         prefs.spacer(12),
-        prefs.smallButton("Unbind All", function()
+        prefs.button("Unbind All", function()
             prefs:cancel()
             prefs:create("Unbind All?", function()
                 return {
                     "This button will erase all your binds",
                     prefs.spacer(16),
                     {
-                        prefs.smallButton("Yes", function()
+                        prefs.flexSpacer(),
+                        prefs.button("Yes", function()
                             preferences:edit():clear():apply()
                             prefs:cancel()
                         end),
                         prefs.spacer(14),
-                        prefs.smallButton("No", function()
+                        prefs.button("No", function()
                             prefs:cancel()
-                        end)
+                        end),
                     },
-                    prefs.spacer(12),
                 }
             end)
         end),
-        prefs.spacer(12),
     }
 end
 

@@ -20,6 +20,7 @@ import com.wavecat.inline.service.commands.Command
 import com.wavecat.inline.service.commands.Query
 import com.wavecat.inline.service.modules.LAZYLOAD
 import com.wavecat.inline.service.modules.LuaSearcher
+import com.wavecat.inline.service.modules.Module
 import com.wavecat.inline.service.modules.loadModules
 import com.wavecat.inline.utils.runOnUiThread
 import org.luaj.vm2.Globals
@@ -72,6 +73,7 @@ class InlineService : AccessibilityService() {
     val allWatchers: MutableMap<LuaValue, Int> = mutableMapOf()
     val allPreferences: MutableMap<String?, HashSet<PreferencesItem>> = mutableMapOf()
     val allCommandFinders: MutableSet<LuaValue> = mutableSetOf()
+    val loadedModules: MutableMap<String, Module> = mutableMapOf()
 
     private var globals: Globals? = null
 
@@ -244,6 +246,7 @@ class InlineService : AccessibilityService() {
         allWatchers.clear()
         allPreferences.clear()
         allCommandFinders.clear()
+        loadedModules.clear()
 
         timer.apply { cancel(); purge() }
         timer = Timer()
@@ -409,6 +412,7 @@ class InlineService : AccessibilityService() {
      * that the service is no longer active.
      */
     override fun onInterrupt() {
+        timer.apply { cancel(); purge() }
         instance = null
     }
 

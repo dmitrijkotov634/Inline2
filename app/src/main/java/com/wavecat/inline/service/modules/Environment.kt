@@ -164,6 +164,9 @@ fun Globals.loadExternalModules(
  * If `isLazy` is true, it calls [loadLazyStubs] to create placeholder functions
  * for the module's commands. These stubs will trigger the actual loading of the module
  * (by calling [executeModule]) when one of the associated commands is invoked.
+ * A shared [loadedModules] set prevents the same module from being loaded more than once,
+ * even if multiple lazy commands from the same module are invoked, or if [forceLoadLazy]
+ * is called after a stub has already triggered loading.
  *
  * If `isLazy` is false, it directly calls [executeModule] to load and execute
  * the module script immediately.
@@ -192,11 +195,17 @@ private fun Globals.loadModuleByStrategy(
     scriptProvider: () -> String,
 ) {
     when {
-        isLazy -> loadLazyStubs(service.allCommands, lazyCommands, lazyPrefs) {
+        isLazy -> loadLazyStubs(service.allCommands, lazyCommands, lazyPrefs, service.loadedModules, path) {
             executeModule(service, scriptProvider(), path, isInternal)
         }
 
-        else -> executeModule(service, scriptProvider(), path, isInternal)
+        else -> {
+            if (path !in service.loadedModules) {
+                executeModule(service, scriptProvider(), path, isInternal)
+            } else {
+                Log.d(TAG, "Skip already loaded module: $path")
+            }
+        }
     }
 }
 
@@ -247,7 +256,11 @@ fun Globals.executeModule(
 ) {
     val result = load(script, path).call()
     Log.d(TAG, "Loading module: $path")
+
+    val module = Module(service, path, isInternal)
+    service.loadedModules[path] = module
+
     if (result.isfunction()) {
-        result.call(CoerceJavaToLua.coerce(Module(service, path, isInternal)))
+        result.call(CoerceJavaToLua.coerce(module))
     }
 }

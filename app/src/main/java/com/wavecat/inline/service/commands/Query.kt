@@ -37,7 +37,9 @@ open class Query(
      * @return The string with the expression replaced.
      */
     fun replaceExpression(replacement: String): String {
-        return currentText.replace(expression, replacement)
+        val index = currentText.indexOf(expression)
+        if (index == -1) return currentText
+        return currentText.substring(0, index) + replacement + currentText.substring(index + expression.length)
     }
 
     val startPosition: Int

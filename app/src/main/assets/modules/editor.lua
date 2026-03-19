@@ -60,7 +60,7 @@ end
 
 local function toggleCase(input, query)
     local text = query:replaceExpression(""):gsub(utf8.charpattern, function(c)
-        return utf8.isLower(c) and string.upper(c) or string.upper(c)
+        return utf8.isLower(c) and string.upper(c) or string.lower(c)
     end)
 
     inline:setText(input, text)

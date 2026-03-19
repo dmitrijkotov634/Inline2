@@ -149,11 +149,12 @@ class windows : TwoArgFunction() {
         /**
          * Closes all active floating windows.
          *
-         * Iterates through all windows in [windows] and calls their close method.
+         * Creates a copy of the set before iterating to avoid ConcurrentModificationException,
+         * since [FloatingWindow.close] removes the window from the set via [onClose].
          *
          * @see FloatingWindow.close
          */
-        fun closeAll() = windows.forEach { it.close() }
+        fun closeAll() = windows.toList().forEach { it.close() }
     }
 
     /**
@@ -268,6 +269,51 @@ class windows : TwoArgFunction() {
                 InlineService.insertText(nodeInfo, text.checkjstring())
                 CoerceJavaToLua.coerce(nodeInfo)
             }
+        }
+
+        /**
+         * Checks if text insertion is currently available.
+         *
+         * @return boolean True if a tracked node exists and focus is not on self
+         */
+        library["isInsertAvailable"] = zeroArgFunction {
+            valueOf(latestAccessibilityNodeInfo != null && !isFocusedOnSelf)
+        }
+
+        /**
+         * Returns the last tracked AccessibilityNodeInfo.
+         *
+         * @return AccessibilityNodeInfo|nil The last tracked node, or nil if unavailable
+         */
+        library["getLastNode"] = zeroArgFunction {
+            val node = latestAccessibilityNodeInfo
+            if (node == null || isFocusedOnSelf) NIL
+            else CoerceJavaToLua.coerce(node)
+        }
+
+        /**
+         * Returns the text of the last tracked input field.
+         *
+         * @return string|nil The text content, or nil if unavailable
+         */
+        library["getLastText"] = zeroArgFunction {
+            val node = latestAccessibilityNodeInfo
+            if (node == null || isFocusedOnSelf) NIL
+            else {
+                node.refresh()
+                valueOf(InlineService.getText(node))
+            }
+        }
+
+        /**
+         * Returns the package name of the app that owns the last tracked field.
+         *
+         * @return string|nil The package name, or nil if unavailable
+         */
+        library["getLastPackage"] = zeroArgFunction {
+            val node = latestAccessibilityNodeInfo
+            if (node == null || isFocusedOnSelf) NIL
+            else valueOf(node.packageName.toString())
         }
 
         /**
