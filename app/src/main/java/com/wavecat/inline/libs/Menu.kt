@@ -1,4 +1,4 @@
-@file:Suppress("unused", "ClassName")
+@file:Suppress("unused")
 
 package com.wavecat.inline.libs
 
@@ -22,7 +22,7 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
  * where users can click on specific text portions to trigger actions.
  * Menus are built using a combination of plain text and clickable elements.
  */
-class menu : TwoArgFunction() {
+class Menu : TwoArgFunction() {
 
     /**
      * Map storing active menu contexts associated with accessibility nodes.

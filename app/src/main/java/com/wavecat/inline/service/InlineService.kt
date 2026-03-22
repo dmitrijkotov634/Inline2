@@ -4,18 +4,20 @@ package com.wavecat.inline.service
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.annotation.SuppressLint
 import android.content.SharedPreferences
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
 import androidx.core.content.edit
-import androidx.core.os.bundleOf
 import androidx.preference.PreferenceManager
 import com.wavecat.inline.BuildConfig
 import com.wavecat.inline.preferences.PreferencesItem
+import com.wavecat.inline.service.InlineService.Companion.ENVIRONMENT_PERF
 import com.wavecat.inline.service.commands.Command
 import com.wavecat.inline.service.commands.Query
 import com.wavecat.inline.service.modules.LAZYLOAD
@@ -56,6 +58,7 @@ import kotlin.system.measureTimeMillis
  * @see Command
  * @see PreferencesItem
  */
+@SuppressLint("AccessibilityPolicy")
 class InlineService : AccessibilityService() {
     /**
      * Provides access to the default shared preferences for the application.
@@ -109,7 +112,10 @@ class InlineService : AccessibilityService() {
      */
     val pattern: Pattern by lazy {
         Pattern.compile(
-            defaultSharedPreferences.getString(PATTERN, "(\\{([\\S]+)(?:\\s([\\S\\s]+?)\\}*)?\\}[\\$₽₴])+")!!,
+            defaultSharedPreferences.getString(
+                PATTERN,
+                "(\\{([\\S]+)(?:\\s([\\S\\s]+?)\\}*)?\\}[\\$₽₴])+"
+            )!!,
             Pattern.DOTALL
         )
     }
@@ -251,7 +257,7 @@ class InlineService : AccessibilityService() {
         timer.apply { cancel(); purge() }
         timer = Timer()
 
-        com.wavecat.inline.libs.windows.closeAll()
+        com.wavecat.inline.libs.Windows.closeAll()
 
         runCatching {
             loadModules(
@@ -282,7 +288,8 @@ class InlineService : AccessibilityService() {
      * @return The [SharedPreferences] instance for the given name.
      * @see android.content.Context.getSharedPreferences
      */
-    fun getSharedPreferences(name: String?): SharedPreferences = getSharedPreferences(name, MODE_PRIVATE)
+    fun getSharedPreferences(name: String?): SharedPreferences =
+        getSharedPreferences(name, MODE_PRIVATE)
 
     /**
      * Notifies registered watchers about an accessibility event.
@@ -302,7 +309,10 @@ class InlineService : AccessibilityService() {
         allWatchers.filter { (_, value) -> (value and eventType) == eventType }
             .forEach { (key, _) ->
                 runCatching {
-                    key.call(CoerceJavaToLua.coerce(accessibilityNodeInfo), LuaValue.valueOf(eventType))
+                    key.call(
+                        CoerceJavaToLua.coerce(accessibilityNodeInfo),
+                        LuaValue.valueOf(eventType)
+                    )
                 }.onFailure { e ->
                     notifyException("notifyWatchers() $key: ${e.message}")
                 }
@@ -373,7 +383,12 @@ class InlineService : AccessibilityService() {
 
             if (!callable.isnil()) {
                 val query = Query(node, text, matcher.group(), args.tojstring())
-                runCatching { callable.call(CoerceJavaToLua.coerce(node), CoerceJavaToLua.coerce(query)) }
+                runCatching {
+                    callable.call(
+                        CoerceJavaToLua.coerce(node),
+                        CoerceJavaToLua.coerce(query)
+                    )
+                }
                     .onFailure { e ->
                         notifyException("Command: ${e.message}")
                     }
@@ -460,9 +475,12 @@ class InlineService : AccessibilityService() {
         @JvmStatic
         fun setText(accessibilityNodeInfo: AccessibilityNodeInfo, text: String?) =
             accessibilityNodeInfo.performAction(
-                AccessibilityNodeInfo.ACTION_SET_TEXT, bundleOf(
-                    AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE to text
-                )
+                AccessibilityNodeInfo.ACTION_SET_TEXT, Bundle().apply {
+                    putCharSequence(
+                        AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                        text
+                    )
+                }
             )
 
         /**
@@ -476,10 +494,10 @@ class InlineService : AccessibilityService() {
         @JvmStatic
         fun setSelection(accessibilityNodeInfo: AccessibilityNodeInfo, start: Int, end: Int) =
             accessibilityNodeInfo.performAction(
-                AccessibilityNodeInfo.ACTION_SET_SELECTION, bundleOf(
-                    AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT to start,
-                    AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT to end
-                )
+                AccessibilityNodeInfo.ACTION_SET_SELECTION, Bundle().apply {
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, start)
+                    putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, end)
+                }
             )
 
         /**
@@ -575,10 +593,15 @@ class InlineService : AccessibilityService() {
             val end = accessibilityNodeInfo.textSelectionEnd.takeIf { it != -1 } ?: start
 
             val currentText = getText(accessibilityNodeInfo)
-            val newText = currentText.substring(0, start) + textToInsert + currentText.substring(end)
+            val newText =
+                currentText.substring(0, start) + textToInsert + currentText.substring(end)
 
             setText(accessibilityNodeInfo, newText)
-            setSelection(accessibilityNodeInfo, start + textToInsert.length, start + textToInsert.length)
+            setSelection(
+                accessibilityNodeInfo,
+                start + textToInsert.length,
+                start + textToInsert.length
+            )
         }
     }
 }

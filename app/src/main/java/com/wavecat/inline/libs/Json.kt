@@ -1,13 +1,13 @@
-@file:Suppress("ClassName", "unused")
+@file:Suppress("unused")
 
 package com.wavecat.inline.libs
 
 import com.wavecat.inline.extensions.forEach
 import com.wavecat.inline.extensions.oneArgFunction
-import com.wavecat.inline.libs.json.Companion.Null
-import com.wavecat.inline.libs.json.Companion.castValue
-import com.wavecat.inline.libs.json.Companion.dumpTable
-import com.wavecat.inline.libs.json.Companion.load
+import com.wavecat.inline.libs.Json.Companion.Null
+import com.wavecat.inline.libs.Json.Companion.castValue
+import com.wavecat.inline.libs.Json.Companion.dumpTable
+import com.wavecat.inline.libs.Json.Companion.load
 import org.json.JSONArray
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -29,7 +29,7 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
  * and deserialize JSON data back to Lua tables. Supports all standard
  * JSON data types including objects, arrays, strings, numbers, booleans, and null.
  */
-class json : TwoArgFunction() {
+class Json : TwoArgFunction() {
 
     /**
      * Initializes the Lua library with JSON functions.

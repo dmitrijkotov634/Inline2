@@ -1,4 +1,4 @@
-@file:Suppress("ClassName", "unused")
+@file:Suppress("unused")
 
 package com.wavecat.inline.libs
 
@@ -27,7 +27,7 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
  * bold, italic, colors, headers, and other styling options. Uses the
  * system clipboard to insert formatted HTML content into text fields.
  */
-class colorama : TwoArgFunction() {
+class Colorama : TwoArgFunction() {
 
     companion object {
         /**

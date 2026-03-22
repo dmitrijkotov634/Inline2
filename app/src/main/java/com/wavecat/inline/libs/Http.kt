@@ -1,4 +1,4 @@
-@file:Suppress("ClassName", "unused")
+@file:Suppress("unused")
 
 package com.wavecat.inline.libs
 
@@ -7,8 +7,8 @@ import com.wavecat.inline.extensions.oneArgFunction
 import com.wavecat.inline.extensions.threeArgFunction
 import com.wavecat.inline.extensions.twoArgFunction
 import com.wavecat.inline.extensions.zeroArgFunction
-import com.wavecat.inline.libs.http.Companion.newInstance
-import com.wavecat.inline.libs.http.Companion.toRequest
+import com.wavecat.inline.libs.Http.Companion.newInstance
+import com.wavecat.inline.libs.Http.Companion.toRequest
 import com.wavecat.inline.utils.runOnUiThread
 import okhttp3.Callback
 import okhttp3.FormBody
@@ -38,7 +38,7 @@ import java.io.IOException
  *
  * @see OkHttpClient
  */
-class http : TwoArgFunction() {
+class Http : TwoArgFunction() {
 
     /**
      * Initializes the Lua library with HTTP client functions.
@@ -103,7 +103,7 @@ class http : TwoArgFunction() {
             var body: RequestBody? = null
 
             when (val data = get("json")) {
-                is LuaTable -> body = json.dumpTable(data, HashSet()).toString().toRequestBody(JSON)
+                is LuaTable -> body = Json.dumpTable(data, HashSet()).toString().toRequestBody(JSON)
                 is LuaString -> body = data.tojstring().toRequestBody(JSON)
                 is LuaNil -> {}
                 else -> throw IllegalArgumentException("Incorrect json value")
@@ -119,8 +119,9 @@ class http : TwoArgFunction() {
                         .build()
 
                     is LuaString -> {
-                        val mediaType = get("mediaType").takeIf { it.isstring() }?.tojstring()?.toMediaType()
-                            ?: throw IllegalArgumentException("mediaType not specified")
+                        val mediaType =
+                            get("mediaType").takeIf { it.isstring() }?.tojstring()?.toMediaType()
+                                ?: throw IllegalArgumentException("mediaType not specified")
                         body = data.tojstring().toRequestBody(mediaType)
                     }
 
@@ -131,7 +132,12 @@ class http : TwoArgFunction() {
 
             val headers = if (get("headers").istable()) {
                 Headers.Builder().also {
-                    get("headers").forEach { key, value -> it.add(key.checkjstring(), value.tojstring()) }
+                    get("headers").forEach { key, value ->
+                        it.add(
+                            key.checkjstring(),
+                            value.tojstring()
+                        )
+                    }
                 }.build()
             } else {
                 Headers.headersOf()
@@ -275,7 +281,12 @@ class http : TwoArgFunction() {
             this["buildMultipartBody"] = oneArgFunction { data ->
                 CoerceJavaToLua.coerce(
                     MultipartBody.Builder().apply {
-                        data.forEach { key, value -> addFormDataPart(key.checkjstring(), value.tojstring()) }
+                        data.forEach { key, value ->
+                            addFormDataPart(
+                                key.checkjstring(),
+                                value.tojstring()
+                            )
+                        }
                     }.build()
                 )
             }

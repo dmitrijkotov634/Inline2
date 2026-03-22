@@ -1,10 +1,9 @@
-@file:Suppress("ClassName", "NewApi", "unused")
+@file:Suppress("NewApi", "unused")
 
 package com.wavecat.inline.libs
 
 import android.content.res.Resources
 import android.graphics.Rect
-import android.os.Build
 import android.view.ContextThemeWrapper
 import android.view.accessibility.AccessibilityNodeInfo
 import com.google.android.material.color.DynamicColors
@@ -13,8 +12,7 @@ import com.wavecat.inline.extensions.oneArgFunction
 import com.wavecat.inline.extensions.threeArgFunction
 import com.wavecat.inline.extensions.twoArgFunction
 import com.wavecat.inline.extensions.zeroArgFunction
-import com.wavecat.inline.libs.windows.Companion.closeAll
-import com.wavecat.inline.libs.windows.Companion.windows
+import com.wavecat.inline.libs.Windows.Companion.closeAll
 import com.wavecat.inline.preferences.FloatingWindow
 import com.wavecat.inline.service.InlineService
 import com.wavecat.inline.service.InlineService.Companion.requireService
@@ -31,7 +29,7 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
  * @see FloatingWindow
  * @see InlineService
  */
-class windows : TwoArgFunction() {
+class Windows : TwoArgFunction() {
     /**
      * Context with dynamic colors and theme for floating windows.
      *
@@ -177,7 +175,8 @@ class windows : TwoArgFunction() {
          * @return boolean True if API level is 22 or higher
          */
         library["isSupported"] = zeroArgFunction {
-            valueOf(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1)
+            valueOf(true)
+            //valueOf(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1)
         }
 
         /**

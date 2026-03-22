@@ -66,13 +66,13 @@ class LuaSearcher(private val globals: Globals) : VarArgFunction() {
          * (e.g., `require "http"`) instead of fully qualified names.
          */
         private val LIBRARIES = mapOf(
-            "http" to "$PACKAGE.http",
-            "json" to "$PACKAGE.json",
-            "iutf8" to "$PACKAGE.utf8",
-            "utils" to "$PACKAGE.utils",
-            "menu" to "$PACKAGE.menu",
-            "colorama" to "$PACKAGE.colorama",
-            "windows" to "$PACKAGE.windows"
+            "http" to "$PACKAGE.Http",
+            "json" to "$PACKAGE.Json",
+            "iutf8" to "$PACKAGE.Utf8",
+            "utils" to "$PACKAGE.Utils",
+            "menu" to "$PACKAGE.Menu",
+            "colorama" to "$PACKAGE.Colorama",
+            "windows" to "$PACKAGE.Windows"
         )
     }
 }

@@ -1,4 +1,4 @@
-@file:Suppress("ClassName", "unused")
+@file:Suppress("unused")
 
 package com.wavecat.inline.libs
 
@@ -11,7 +11,6 @@ import com.wavecat.inline.service.commands.Query
 import com.wavecat.inline.utils.ArgumentTokenizer
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
-import org.luaj.vm2.Varargs
 import org.luaj.vm2.lib.TwoArgFunction
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
@@ -25,7 +24,7 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
  * @see ArgumentTokenizer
  * @see Query
  */
-class utils : TwoArgFunction() {
+class Utils : TwoArgFunction() {
     /**
      * Initializes the Lua library with utility functions.
      *

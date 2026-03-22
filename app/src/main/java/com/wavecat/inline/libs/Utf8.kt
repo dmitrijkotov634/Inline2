@@ -1,4 +1,4 @@
-@file:Suppress("unused", "ClassName")
+@file:Suppress("unused")
 
 package com.wavecat.inline.libs
 
@@ -16,7 +16,7 @@ import org.luaj.vm2.lib.TwoArgFunction
  * including character counting, substring extraction, and case checking.
  * All functions work with Unicode code points rather than raw bytes.
  */
-class utf8 : TwoArgFunction() {
+class Utf8 : TwoArgFunction() {
 
     /**
      * Initializes the Lua library with UTF-8 string functions.
