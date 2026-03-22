@@ -1,5 +1,3 @@
-<div align="center">
-
 # Inline
 
 [![Android](https://img.shields.io/badge/Android-23%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com)
@@ -16,8 +14,6 @@
 Введите `{команда}$` в любом текстовом поле - мессенджере, браузере, заметках - и Inline выполнит вашу Lua-функцию прямо на месте, заменив выражение результатом. Без root.
 
 <img src="screenrecord.gif" alt="Inline Demo" height="500px" />
-
-</div>
 
 ---
 

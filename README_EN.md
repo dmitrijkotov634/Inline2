@@ -1,5 +1,3 @@
-<div align="center">
-
 # Inline
 
 [![Android](https://img.shields.io/badge/Android-23%2B-3DDC84?logo=android&logoColor=white)](https://developer.android.com)
@@ -16,8 +14,6 @@ Real-time text formatting android tool | [Русский](README.md)
 Type `{command}$` in any text field - messenger, browser, notes - and Inline will execute your Lua function on the spot, replacing the expression with the result. No root required.
 
 <img src="screenrecord.gif" alt="Inline Demo" height="500px" />
-
-</div>
 
 ---
 
