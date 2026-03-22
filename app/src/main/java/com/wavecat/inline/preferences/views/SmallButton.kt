@@ -5,7 +5,9 @@ package com.wavecat.inline.preferences.views
 import android.content.Context
 import android.content.SharedPreferences
 import android.view.View
+import androidx.appcompat.view.ContextThemeWrapper
 import com.google.android.material.button.MaterialButton
+import com.wavecat.inline.R
 import com.wavecat.inline.preferences.Preference
 import com.wavecat.inline.utils.dp
 import org.luaj.vm2.LuaValue
@@ -25,17 +27,17 @@ import org.luaj.vm2.lib.jse.CoerceJavaToLua
  */
 class SmallButton : MaterialButton, Preference {
     constructor(context: Context, text: String, listener: LuaValue) : super(
-        context,
+        ContextThemeWrapper(context, R.style.InlineSmallButton),
         null,
-        com.google.android.material.R.attr.borderlessButtonStyle
+        android.R.attr.borderlessButtonStyle
     ) {
         init(text, listener)
     }
 
     constructor(context: Context, text: String) : super(
-        context,
+        ContextThemeWrapper(context, R.style.InlineSmallButton),
         null,
-        com.google.android.material.R.attr.borderlessButtonStyle
+        android.R.attr.borderlessButtonStyle
     ) {
         init(text, LuaValue.NIL)
     }
@@ -50,7 +52,6 @@ class SmallButton : MaterialButton, Preference {
         minimumWidth = 0
         minHeight = 0
         minWidth = 0
-        background = null
 
         setListener(listener)
     }

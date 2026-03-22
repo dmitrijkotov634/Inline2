@@ -1,3 +1,4 @@
+require "utils"
 require "colorama"
 require "windows"
 
@@ -49,10 +50,8 @@ local function countLazyModules()
     local lazyAll = inline:getLazyLoadSharedPreferences():getAll()
     local lazyCount = 0
 
-    local iter = lazyAll:entrySet():iterator()
-    while iter:hasNext() do
-        local entry = iter:next()
-        if type(entry:getValue()) == "userdata" and not loaded:containsKey(entry:getKey()) then
+    for key, value in utils.mapEntries(lazyAll) do
+        if type(value) == "userdata" and not loaded:containsKey(key) then
             lazyCount = lazyCount + 1
         end
     end

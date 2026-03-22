@@ -1,3 +1,4 @@
+require "utils"
 require "menu"
 
 local preferences = inline:getSharedPreferences "notes"
@@ -33,20 +34,17 @@ local function notes(_, query)
         " List of notes:\n\n"
     }
 
-    local iterator = preferences:getAll():entrySet():iterator()
-
-    while iterator:hasNext() do
-        local entry = iterator:next()
+    for key, value in utils.mapEntries(preferences:getAll()) do
         result[#result + 1] = {
             caption = "[X]",
             action = function(_, q)
                 menu.create(q, {
                     "Delete ",
-                    entry:getKey(),
+                    key,
                     "? ",
                     { caption = "[Yes]", action = function(_, queryYes)
                         preferences:edit()
-                                   :remove(entry:getKey())
+                                   :remove(key)
                                    :apply()
                         notes(_, queryYes)
                     end },
@@ -64,18 +62,18 @@ local function notes(_, query)
                 menu.create(q, {
                     { caption = "[<]", action = notes },
                     " Contents of ",
-                    entry:getKey(),
+                    key,
                     ":\n\n",
-                    entry:getValue(),
+                    value,
                     "\n\n",
                     { caption = "[Paste]", action = function(_, queryYes)
-                        queryYes:answer(entry:getValue())
+                        queryYes:answer(value)
                     end }
                 }, notes)
             end
         }
 
-        result[#result + 1] = " " .. entry:getKey() .. "\n"
+        result[#result + 1] = " " .. key .. "\n"
     end
 
     menu.create(query, result)

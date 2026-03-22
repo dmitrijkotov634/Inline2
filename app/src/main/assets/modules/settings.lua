@@ -2,12 +2,8 @@ require "utils"
 
 local function help(_, query)
     local categories = {}
-    local iterator = inline:getAllCommands():entrySet():iterator()
 
-    while iterator:hasNext() do
-        local entry = iterator:next()
-        local cmd_name = entry:getKey()
-        local cmd_obj = entry:getValue()
+    for cmd_name, cmd_obj in utils.mapEntries(inline:getAllCommands()) do
         local category = cmd_obj:getCategory() or "Other"
 
         if not categories[category] then
@@ -107,20 +103,13 @@ local function modules(_, query)
     local loaded_list = {}
     local lazy_list = {}
 
-    local loaded_iter = loaded:entrySet():iterator()
-    while loaded_iter:hasNext() do
-        local entry = loaded_iter:next()
-        table.insert(loaded_list, "✓ " .. short_name(entry:getKey()))
+    for key in utils.mapEntries(loaded) do
+        table.insert(loaded_list, "✓ " .. short_name(key))
     end
 
-    local lazy_iter = allLazyKeys:entrySet():iterator()
-    while lazy_iter:hasNext() do
-        local entry = lazy_iter:next()
-        local key = entry:getKey()
-        local value = entry:getValue()
-
+    for key, value in utils.mapEntries(allLazyKeys) do
         if type(value) == "userdata" and not loaded:containsKey(key) then
-            table.insert(lazy_list, "⏳ " .. short_name(key))
+            table.insert(lazy_list, "↻ " .. short_name(key))
         end
     end
 

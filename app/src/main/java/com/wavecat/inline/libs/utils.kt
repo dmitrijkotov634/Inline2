@@ -2,13 +2,16 @@
 
 package com.wavecat.inline.libs
 
+import com.wavecat.inline.extensions.forEach
 import com.wavecat.inline.extensions.oneArgFunction
 import com.wavecat.inline.extensions.threeArgFunction
 import com.wavecat.inline.extensions.twoArgFunction
+import com.wavecat.inline.extensions.varArgFunction
 import com.wavecat.inline.service.commands.Query
 import com.wavecat.inline.utils.ArgumentTokenizer
 import org.luaj.vm2.LuaTable
 import org.luaj.vm2.LuaValue
+import org.luaj.vm2.Varargs
 import org.luaj.vm2.lib.TwoArgFunction
 import org.luaj.vm2.lib.jse.CoerceJavaToLua
 
@@ -153,6 +156,83 @@ class utils : TwoArgFunction() {
 
                 value.call(input, arg2)
             }
+        }
+
+        library["mapEntries"] = oneArgFunction { javaMap ->
+            @Suppress("UNCHECKED_CAST")
+            val set = (javaMap.checkuserdata() as java.util.Map<Any?, Any?>).entrySet()
+            val iterator = set.iterator()
+
+            varArgFunction {
+                if (iterator.hasNext()) {
+                    val entry = iterator.next()
+                    varargsOf(
+                        CoerceJavaToLua.coerce(entry.key),
+                        CoerceJavaToLua.coerce(entry.value)
+                    )
+                } else {
+                    NIL
+                }
+            }
+        }
+
+        library["listValues"] = oneArgFunction { javaCollection ->
+            val iterator = (javaCollection.checkuserdata() as Iterable<*>).iterator()
+
+            varArgFunction {
+                if (iterator.hasNext()) {
+                    CoerceJavaToLua.coerce(iterator.next())
+                } else {
+                    NIL
+                }
+            }
+        }
+
+        library["map"] = twoArgFunction { table, func ->
+            val result = LuaTable()
+            var i = 1
+
+            table.checktable().forEach { key, value ->
+                result.rawset(i++, func.call(value, key))
+            }
+
+            result
+        }
+
+        library["filter"] = twoArgFunction { table, func ->
+            val result = LuaTable()
+            var i = 1
+
+            table.checktable().forEach { key, value ->
+                if (func.call(value, key).toboolean()) {
+                    result.rawset(i++, value)
+                }
+            }
+
+            result
+        }
+
+        library["keys"] = oneArgFunction { table ->
+            val result = LuaTable()
+            var i = 1
+
+            table.checktable().forEach { key, _ ->
+                result.rawset(i++, key)
+            }
+
+            result
+        }
+
+        library["trim"] = oneArgFunction { str ->
+            valueOf(str.checkjstring().trim())
+        }
+
+        library["startsWith"] = twoArgFunction { str, prefix ->
+            valueOf(str.checkjstring().startsWith(prefix.checkjstring()))
+        }
+
+        library["endsWith"] = twoArgFunction { str, suffix ->
+            valueOf(str.checkjstring().endsWith(suffix.checkjstring()))
         }
 
         env["utils"] = library

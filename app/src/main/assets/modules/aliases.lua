@@ -1,3 +1,4 @@
+require "utils"
 require "menu"
 
 local aliases = inline:getSharedPreferences "aliases"
@@ -46,20 +47,17 @@ local function aliases_(_, query)
         " List of aliases:\n\n"
     }
 
-    local iterator = aliases:getAll():entrySet():iterator()
-
-    while iterator:hasNext() do
-        local entry = iterator:next()
+    for key, value in utils.mapEntries(aliases:getAll()) do
         result[#result + 1] = {
             caption = "[X]",
             action = function(_, q)
                 menu.create(q, {
                     "Delete ",
-                    entry:getKey(),
+                    key,
                     "? ",
                     { caption = "[Yes]", action = function(_, queryYes)
                         aliases:edit()
-                               :remove(entry:getKey())
+                               :remove(key)
                                :apply()
                         aliases_(_, queryYes)
                     end },
@@ -68,7 +66,7 @@ local function aliases_(_, query)
                 }, aliases_)
             end
         }
-        result[#result + 1] = " " .. entry:getKey() .. " -> " .. entry:getValue() .. "\n"
+        result[#result + 1] = " " .. key .. " -> " .. value .. "\n"
     end
 
     menu.create(query, result)

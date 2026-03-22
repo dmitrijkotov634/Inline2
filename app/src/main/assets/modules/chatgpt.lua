@@ -98,7 +98,7 @@ local function getPreferences(prefs)
         prefs.spacer(8),
         "The OpenAI API is powered by a diverse set of models with different capabilities and price points.",
         prefs.spacer(8),
-        prefs.textInput("openai_model", "API Model"):setDefault "gpt-4o-mini",
+        prefs.textInput("openai_model", "API Model"):setDefault "gpt-5.4",
         prefs.spacer(8),
         prefs.textInput("openai_url", "API Url"):setDefault(DEFAULT_API_ENDPOINT),
         prefs.spacer(8)

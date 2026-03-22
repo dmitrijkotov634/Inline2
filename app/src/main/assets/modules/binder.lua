@@ -72,11 +72,7 @@ local function binder(input)
         local text = input:getText()
         if text ~= nil and text.toString ~= nil then
             text = text:toString()
-            local iterator = preferences:getAll():entrySet():iterator()
-            while iterator:hasNext() do
-                local entry = iterator:next()
-                local key = entry:getKey()
-                local value = entry:getValue()
+            for key, value in utils.mapEntries(preferences:getAll()) do
                 if value:find("^!end%s") then
                     if text:sub(-#key) == key then
                         local cleanValue = value:gsub("^!end%s*", "")
@@ -114,7 +110,6 @@ end
 
 local function binds(_, query)
     enabled = false
-    local iterator = preferences:getAll():entrySet():iterator()
     local result = {
         {
             caption = "[X]",
@@ -125,10 +120,9 @@ local function binds(_, query)
         },
         " List of bindings:\n\n"
     }
-    while iterator:hasNext() do
-        local entry = iterator:next()
-        table.insert(result, createUnbindMenuItem(query, entry:getKey(), binds))
-        table.insert(result, " " .. entry:getKey() .. " -> " .. entry:getValue() .. "\n")
+    for key, value in utils.mapEntries(preferences:getAll()) do
+        table.insert(result, createUnbindMenuItem(query, key, binds))
+        table.insert(result, " " .. key .. " -> " .. value .. "\n")
     end
     menu.create(query, result, function(_, q)
         q:answer()

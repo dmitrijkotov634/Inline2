@@ -90,11 +90,13 @@ class Builder(context: Context) : LuaTable() {
                     val all = args.arg(2).checkint().dp
                     lp.setMargins(all, all, all, all)
                 }
+
                 3 -> {
                     val h = args.arg(2).checkint().dp
                     val v = args.arg(3).checkint().dp
                     lp.setMargins(h, v, h, v)
                 }
+
                 else -> lp.setMargins(
                     args.arg(2).checkint().dp,
                     args.arg(3).checkint().dp,
@@ -115,11 +117,13 @@ class Builder(context: Context) : LuaTable() {
                     val all = args.arg(2).checkint().dp
                     view.setPadding(all, all, all, all)
                 }
+
                 3 -> {
                     val h = args.arg(2).checkint().dp
                     val v = args.arg(3).checkint().dp
                     view.setPadding(h, v, h, v)
                 }
+
                 else -> view.setPadding(
                     args.arg(2).checkint().dp,
                     args.arg(3).checkint().dp,
