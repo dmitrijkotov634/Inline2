@@ -29,7 +29,7 @@ Type `{command}$` in any text field - messenger, browser, notes - and Inline wil
 4. On the main screen of the app you'll find a list of modules - download and configure the ones you need
 5. Type `{help}$` in a text field to see available commands
 
-> Not all text fields are supported
+> Not all text fields are supported. Compatibility depends on the Android skin - works well on Pixel and AOSP, unstable on Samsung, poorly supported on Xiaomi (MIUI/HyperOS).
 
 ### Features
 
