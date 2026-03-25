@@ -27,21 +27,54 @@ class Slider(context: Context) : Slider(context), Preference {
     private var defaultValue = 0f
     private var useInt: Boolean = false
 
-    constructor(context: Context, sharedKey: String?, max: Int) : this(context) {
+    constructor(context: Context, sharedKey: String?, max: Float) : this(context) {
         this.sharedKey = sharedKey
-        setup(max)
+        setup(0f, max)
     }
 
-    constructor(context: Context, onStopTracking: LuaValue?, max: Int) : this(context) {
+    constructor(context: Context, onStopTracking: LuaValue?, max: Float) : this(context) {
         this.onStopTracking = onStopTracking
-        setup(max)
+        setup(0f, max)
     }
 
-    private fun setup(max: Int) {
-        valueFrom = 0f
-        valueTo = max.toFloat()
-        stepSize = 1f
-        value = 0f
+    constructor(context: Context, sharedKey: String?, min: Float, max: Float) : this(context) {
+        this.sharedKey = sharedKey
+        setup(min, max)
+    }
+
+    constructor(
+        context: Context,
+        onStopTracking: LuaValue?,
+        min: Float,
+        max: Float
+    ) : this(context) {
+        this.onStopTracking = onStopTracking
+        setup(min, max)
+    }
+
+    constructor(context: Context, sharedKey: String?, min: Float, max: Float, step: Float) : this(
+        context
+    ) {
+        this.sharedKey = sharedKey
+        setup(min, max, step)
+    }
+
+    constructor(
+        context: Context,
+        onStopTracking: LuaValue?,
+        min: Float,
+        max: Float,
+        step: Float
+    ) : this(context) {
+        this.onStopTracking = onStopTracking
+        setup(min, max, step)
+    }
+
+    private fun setup(min: Float, max: Float, step: Float = 1f) {
+        valueFrom = min
+        valueTo = max
+        stepSize = step
+        value = min
     }
 
     fun setStep(step: Int): com.wavecat.inline.preferences.views.Slider {

@@ -8,6 +8,7 @@ import com.wavecat.inline.extensions.varArgFunction
 import com.wavecat.inline.preferences.views.Button
 import com.wavecat.inline.preferences.views.Card
 import com.wavecat.inline.preferences.views.CheckBox
+import com.wavecat.inline.preferences.views.Chip
 import com.wavecat.inline.preferences.views.Column
 import com.wavecat.inline.preferences.views.Divider
 import com.wavecat.inline.preferences.views.FlexSpacer
@@ -74,6 +75,7 @@ class Builder(context: Context) : LuaTable() {
         set("divider", withContext(context, Divider::class.java))
         set("card", withContext(context, Card::class.java))
         set("switch", withContext(context, Switch::class.java))
+        set("chip", withContext(context, Chip::class.java))
 
         // View utilities
 

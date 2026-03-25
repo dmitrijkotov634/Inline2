@@ -2,6 +2,7 @@
 
 package com.wavecat.inline.libs
 
+import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.wavecat.inline.extensions.forEach
 import com.wavecat.inline.extensions.oneArgFunction
@@ -156,7 +157,7 @@ class Menu : TwoArgFunction() {
                 )
 
                 menuMap[query.accessibilityNodeInfo] = context
-                requireService().allWatchers[menuWatcher] = InlineService.TYPE_SELECTION_CHANGED
+                requireService().allWatchers[menuWatcher] = AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
                 CoerceJavaToLua.coerce(context)
             } else {
                 FALSE

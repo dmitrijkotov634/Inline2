@@ -1,6 +1,8 @@
 require "iutf8"
 require "utils"
 
+local ClipData = require "android.content.ClipData"
+
 local function replace(input, query, args)
     inline:setText(input, query:replaceExpression(""):gsub(utils.escape(args[1]), args[2]))
 end
@@ -44,8 +46,8 @@ local function invert(input, query)
     end
 
     inline:setText(input, query:replaceExpression(""):gsub(
-        utf8.charpattern,
-        replacements
+            utf8.charpattern,
+            replacements
     ))
 end
 
@@ -58,12 +60,35 @@ local function paste(input, query)
     inline:paste(input)
 end
 
-local function toggleCase(input, query)
-    local text = query:replaceExpression(""):gsub(utf8.charpattern, function(c)
+local function toggleCase(input, _)
+    input:refresh()
+
+    local text = inline:getText(input)
+    local selStart = input:getTextSelectionStart()
+    local selEnd = input:getTextSelectionEnd()
+
+    if selStart < 0 then
+        selStart = 0
+    end
+    if selEnd < 0 then
+        selEnd = 0
+    end
+
+    if selStart == selEnd then
+        selStart = 0
+        selEnd = utf8.len(text)
+    end
+
+    inline:setSelection(input, selStart, selEnd)
+
+    local selected = utf8.sub(text, selStart, selEnd)
+    local toggled = selected:gsub(utf8.charpattern, function(c)
         return utf8.isLower(c) and string.upper(c) or string.lower(c)
     end)
 
-    inline:setText(input, text)
+    local clip = ClipData:newPlainText("fmt", toggled)
+    inline:getSystemService(inline.CLIPBOARD_SERVICE):setPrimaryClip(clip)
+    inline:paste(input)
 end
 
 return function(module)

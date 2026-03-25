@@ -5,6 +5,7 @@ package com.wavecat.inline.preferences.views
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.TypedValue
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
@@ -58,6 +59,19 @@ class Spinner(context: Context?, set: LuaTable) : AppCompatSpinner(context!!), P
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         setAdapter(adapter)
         setSelection(0)
+
+        val dp48 = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, 48f, resources.displayMetrics
+        ).toInt()
+        minimumHeight = dp48
+
+        val hPad = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, 4f, resources.displayMetrics
+        ).toInt()
+        val vPad = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, 12f, resources.displayMetrics
+        ).toInt()
+        setPadding(hPad, vPad, hPad, vPad)
     }
 
     fun setListener(listener: LuaValue?): Spinner {
@@ -81,7 +95,12 @@ class Spinner(context: Context?, set: LuaTable) : AppCompatSpinner(context!!), P
         }
 
         onItemSelectedListener = object : OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View, position: Int, id: Long) {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View,
+                position: Int,
+                id: Long
+            ) {
                 if (!userSelect) {
                     userSelect = true
                     return

@@ -11,8 +11,8 @@ android {
         applicationId "com.wavecat.inline"
         minSdk 23
         targetSdk 36
-        versionCode 26
-        versionName "1.4.1"
+        versionCode 28
+        versionName "1.4.5"
     }
 
     buildTypes {

@@ -1,4 +1,4 @@
-@file:Suppress("MemberVisibilityCanBePrivate", "unused")
+@file:Suppress("MemberVisibilityCanBePrivate", "unused", "PropertyName")
 
 package com.wavecat.inline.service
 
@@ -77,6 +77,15 @@ class InlineService : AccessibilityService() {
     val allPreferences: MutableMap<String?, HashSet<PreferencesItem>> = mutableMapOf()
     val allCommandFinders: MutableSet<LuaValue> = mutableSetOf()
     val loadedModules: MutableMap<String, Module> = mutableMapOf()
+
+    @JvmField
+    val TYPE_TEXT_CHANGED: Int = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
+
+    @JvmField
+    val TYPE_SELECTION_CHANGED: Int = AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
+
+    @JvmField
+    val TYPE_ALL_MASK: Int = TYPE_SELECTION_CHANGED or TYPE_TEXT_CHANGED
 
     private var globals: Globals? = null
 
@@ -452,15 +461,6 @@ class InlineService : AccessibilityService() {
         const val PREVIOUS_VERSION_CODE = "previous_version_code"
 
         const val TAG: String = "InlineService"
-
-        @JvmStatic
-        val TYPE_TEXT_CHANGED: Int = AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED
-
-        @JvmStatic
-        val TYPE_SELECTION_CHANGED: Int = AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
-
-        @JvmStatic
-        val TYPE_ALL_MASK: Int = TYPE_SELECTION_CHANGED or TYPE_TEXT_CHANGED
 
         /**
          * Sets the text of an [AccessibilityNodeInfo].

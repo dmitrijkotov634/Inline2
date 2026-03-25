@@ -7,7 +7,7 @@ import android.util.Log
 import androidx.core.content.edit
 import com.wavecat.inline.preferences.PreferencesItem
 import com.wavecat.inline.service.InlineService
-import com.wavecat.inline.service.InlineService.Companion.TYPE_TEXT_CHANGED
+import android.view.accessibility.AccessibilityEvent
 import com.wavecat.inline.service.commands.Command
 import org.luaj.vm2.LuaValue
 
@@ -133,7 +133,7 @@ class Module(
      */
     fun registerWatcher(callable: LuaValue) {
         Log.d("Module", "Registering watcher with default mask")
-        registerWatcher(callable, TYPE_TEXT_CHANGED)
+        registerWatcher(callable, AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED)
     }
 
     /**

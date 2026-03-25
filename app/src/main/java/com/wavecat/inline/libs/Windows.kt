@@ -5,6 +5,7 @@ package com.wavecat.inline.libs
 import android.content.res.Resources
 import android.graphics.Rect
 import android.view.ContextThemeWrapper
+import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.google.android.material.color.DynamicColors
 import com.wavecat.inline.R
@@ -99,7 +100,7 @@ class Windows : TwoArgFunction() {
     private fun enableWatcher() {
         requireService().apply {
             allWatchers[latestNodeWatcher] =
-                InlineService.TYPE_TEXT_CHANGED or InlineService.TYPE_SELECTION_CHANGED
+                AccessibilityEvent.TYPE_VIEW_TEXT_CHANGED or AccessibilityEvent.TYPE_VIEW_TEXT_SELECTION_CHANGED
         }
     }
 
